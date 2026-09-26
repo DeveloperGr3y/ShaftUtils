@@ -117,6 +117,12 @@ class CorpseConfig {
 }
 
 class TitleConfig {
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Preview Titles", desc = "Play every kind of title. Also: §e/shaftutils testtitles§7 (or §e/shaftutils testtitles opal§7).")
+    @ConfigEditorButton(buttonText = "Preview")
+    val preview = Runnable { ShaftUtils.previewTitles() }
+
     @Expose
     @JvmField
     @ConfigOption(name = "Enabled", desc = "Show the shaft type and its corpses on screen when you enter a shaft.")

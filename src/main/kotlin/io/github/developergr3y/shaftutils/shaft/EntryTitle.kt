@@ -105,7 +105,7 @@ object EntryTitle {
         show(code, corpses.map { it.type })
     }
 
-    /** Shows the title for [code] with these corpses (also used by /shaftutils testtitle). */
+    /** Shows the title for [code] with these corpses (also used by /shaftutils testtitles). */
     fun show(code: String, corpses: List<CorpseType>) {
         val type = code.substringBefore('_')
         val crystal = code.endsWith("_C")

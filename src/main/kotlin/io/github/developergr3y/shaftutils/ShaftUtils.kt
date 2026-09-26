@@ -92,18 +92,9 @@ object ShaftUtils : ClientModInitializer {
                         nextTick = { managedConfig.openConfigGui() }
                         1
                     }
-                    // Preview the entry titles (every kind, or one shaft). Remove before release.
-                    .then(ClientCommands.literal("testtitle")
-                        .executes {
-                            EntryTitle.test(null)
-                            1
-                        }
-                        .then(ClientCommands.argument("code", StringArgumentType.greedyString()).executes {
-                            val code = Routes.normaliseCode(StringArgumentType.getString(it, "code"))
-                            if (code == null || code == "CRYSTAL") chat("§cName a shaft, e.g. §fumber 1§c, §fjasper crystal§c or §fFAIR_1§c.")
-                            else EntryTitle.test(code)
-                            1
-                        }))
+                    // Preview the entry titles with your settings: every kind in turn, or one shaft.
+                    .then(testTitlesCommand("testtitles"))
+                    .then(testTitlesCommand("testtitle"))
                     .then(ClientCommands.literal("gui").executes {
                         openHudEditor()
                         1
@@ -233,6 +224,26 @@ object ShaftUtils : ClientModInitializer {
             Probe.log("spot_added_manually", "code" to Mineshaft.code, "pos" to listOf(pos.x, pos.y, pos.z))
         } else {
             chat("§eThere's already a known spot there.")
+        }
+    }
+
+    private fun testTitlesCommand(name: String) = ClientCommands.literal(name)
+        .executes {
+            EntryTitle.test(null)
+            1
+        }
+        .then(ClientCommands.argument("code", StringArgumentType.greedyString()).executes {
+            val code = Routes.normaliseCode(StringArgumentType.getString(it, "code"))
+            if (code == null || code == "CRYSTAL") chat("§cName a shaft, e.g. §fumber 1§c, §fjasper crystal§c or §fFAIR_1§c.")
+            else EntryTitle.test(code)
+            1
+        })
+
+    /** Close the settings and play every title, so you can see them with your settings. */
+    fun previewTitles() {
+        nextTick = {
+            Compat.setScreen(null)
+            EntryTitle.test(null)
         }
     }
 

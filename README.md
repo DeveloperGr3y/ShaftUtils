@@ -56,6 +56,7 @@ Ordered mining routes, loaded automatically when you enter a shaft.
 | Command | |
 |---|---|
 | `/shaftutils` | Settings |
+| `/shaftutils testtitles [shaft]` | Preview the entry titles with your settings (all, or e.g. `opal crystal`) |
 | `/shaftutils gui` | Move and resize the status panel |
 | `/shaftutils status` | Shaft code, tab corpses, spot counts |
 | `/shaftutils route` | Route status and list |
