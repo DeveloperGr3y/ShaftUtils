@@ -6,7 +6,11 @@ import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
 import io.github.developergr3y.shaftutils.corpse.OrganDonor
 import io.github.developergr3y.shaftutils.corpse.SpawnData
 import io.github.developergr3y.shaftutils.debug.Probe
+import io.github.developergr3y.shaftutils.hud.RouteRender
 import io.github.developergr3y.shaftutils.hud.StatusHud
+import io.github.developergr3y.shaftutils.routes.RouteFollower
+import io.github.developergr3y.shaftutils.routes.Routes
+import com.mojang.brigadier.arguments.StringArgumentType
 import io.github.developergr3y.shaftutils.hud.Waypoints
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
@@ -58,6 +62,7 @@ object ShaftUtils : ClientModInitializer {
             }
             Mineshaft.tick(client)
             CorpseFinder.tick(client)
+            RouteFollower.tick(client)
         }
 
         // MoulConfig's openConfigGui() doesn't pass on the close event it saves on, so save when our screen closes.
@@ -65,6 +70,7 @@ object ShaftUtils : ClientModInitializer {
             if (screen is MoulConfigScreenComponent) ScreenEvents.remove(screen).register { saveConfig() }
         }
 
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("route"), RouteRender::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("waypoints"), Waypoints::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("status"), StatusHud::render)
 
@@ -91,12 +97,80 @@ object ShaftUtils : ClientModInitializer {
                         addSpotHere()
                         1
                     })
+                    .then(routeCommand())
                     .then(ClientCommands.literal("probe").executes {
                         chat("Probe logs are in §f${Probe.folder.path}")
                         1
                     }),
             )
         }
+    }
+
+    /**
+     * /shaftutils route: import (from clipboard), next, back, restart, reload, list, delete, folder.
+     * Import and delete work on the shaft you're in, or name a code: /shaftutils route import TOPA_1
+     */
+    private fun routeCommand() = ClientCommands.literal("route")
+        .executes {
+            val route = RouteFollower.route
+            chat(
+                if (route == null) "No route for §f${Mineshaft.code ?: "this area"}§r. Copy one and run §e/shaftutils route import"
+                else "Route §f${Mineshaft.code}§r: point ${RouteFollower.index + 1}/${route.size}",
+            )
+            chat("§7Routes: §f${Routes.list().joinToString().ifEmpty { "none yet" }}")
+            1
+        }
+        .then(ClientCommands.literal("import")
+            .executes { importRoute(Mineshaft.code); 1 }
+            .then(ClientCommands.argument("code", StringArgumentType.word()).executes {
+                importRoute(StringArgumentType.getString(it, "code").uppercase()); 1
+            }))
+        .then(ClientCommands.literal("delete")
+            .executes { deleteRoute(Mineshaft.code); 1 }
+            .then(ClientCommands.argument("code", StringArgumentType.word()).executes {
+                deleteRoute(StringArgumentType.getString(it, "code").uppercase()); 1
+            }))
+        .then(ClientCommands.literal("next").executes { RouteFollower.advance(); 1 })
+        .then(ClientCommands.literal("back").executes { RouteFollower.back(); 1 })
+        .then(ClientCommands.literal("restart").executes { RouteFollower.restart(); 1 })
+        .then(ClientCommands.literal("reload").executes {
+            RouteFollower.reload()
+            chat("Reloaded routes.")
+            1
+        })
+        .then(ClientCommands.literal("list").executes {
+            chat("Routes: §f${Routes.list().joinToString().ifEmpty { "none yet" }}")
+            1
+        })
+        .then(ClientCommands.literal("folder").executes { openRoutesFolder(); 1 })
+
+    private fun importRoute(code: String?) {
+        if (code == null) {
+            chat("§cEnter a shaft first, or name one: §e/shaftutils route import TOPA_1")
+            return
+        }
+        val text = net.minecraft.client.Minecraft.getInstance().keyboardHandler.clipboard
+        try {
+            val count = Routes.import(code, text)
+            chat("§aSaved a $count-point route for §f$code§a from your clipboard.")
+            if (code == Mineshaft.code) RouteFollower.reload()
+        } catch (e: Exception) {
+            chat("§cCouldn't read a route from your clipboard: ${e.message}")
+        }
+    }
+
+    private fun deleteRoute(code: String?) {
+        if (code == null) {
+            chat("§cName a shaft: §e/shaftutils route delete TOPA_1")
+            return
+        }
+        chat(if (Routes.delete(code)) "Deleted the route for §f$code§r." else "§cNo route for §f$code§c.")
+        if (code == Mineshaft.code) RouteFollower.reload()
+    }
+
+    fun openRoutesFolder() {
+        Routes.dir.mkdirs()
+        net.minecraft.util.Util.getPlatform().openFile(Routes.dir)
     }
 
     fun exportSpots() {

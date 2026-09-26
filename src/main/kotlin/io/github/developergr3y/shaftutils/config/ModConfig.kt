@@ -26,6 +26,11 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
+    @Category(name = "Routes", desc = "Your own ordered mining routes, loaded per shaft type when you arrive.")
+    var routes = RoutesConfig()
+
+    @Expose
+    @JvmField
     @Category(name = "Debug", desc = "Data gathering while we work out how corpses and the ding behave.")
     var debug = DebugConfig()
 }
@@ -90,6 +95,44 @@ class CorpseConfig {
     @ConfigOption(name = "Panel Y", desc = "Status panel position from the top.")
     @ConfigEditorSlider(minValue = 0f, maxValue = 400f, minStep = 5f)
     var statusY = 60
+}
+
+class RoutesConfig {
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Enabled", desc = "Load your route for the shaft you enter. Add routes with §e/shaftutils route§7.")
+    @ConfigEditorBoolean
+    var enabled = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Advance Distance", desc = "Move to the next point once you're this many blocks from the current one.")
+    @ConfigEditorSlider(minValue = 1f, maxValue = 8f, minStep = 0.5f)
+    var advanceDistance = 3.0f
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Points Ahead", desc = "How many upcoming points to show after the current one.")
+    @ConfigEditorSlider(minValue = 0f, maxValue = 5f, minStep = 1f)
+    var pointsAhead = 2
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Line to Point", desc = "Draw a line from your crosshair to the current point.")
+    @ConfigEditorBoolean
+    var showTracer = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Path Line", desc = "Join the current and upcoming points with a line.")
+    @ConfigEditorBoolean
+    var showPath = true
+
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Open Routes Folder", desc = "One file per shaft code, e.g. TOPA_1.json. CRYSTAL.json covers crystal shafts.")
+    @ConfigEditorButton(buttonText = "Open")
+    val openFolder = Runnable { ShaftUtils.openRoutesFolder() }
 }
 
 class DebugConfig {

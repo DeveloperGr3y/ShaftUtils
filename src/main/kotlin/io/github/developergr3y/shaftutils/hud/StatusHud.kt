@@ -5,6 +5,7 @@ import io.github.developergr3y.shaftutils.corpse.CorpseFinder
 import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
 import io.github.developergr3y.shaftutils.corpse.OrganDonor
 import io.github.developergr3y.shaftutils.corpse.SpawnData
+import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
@@ -34,6 +35,9 @@ object StatusHud {
                 },
             )
             add(dingLine())
+            RouteFollower.route?.let { route ->
+                add(if (RouteFollower.finished) "§7Route: §aFinished" else "§7Route: §f${RouteFollower.index + 1}§7/${route.size}")
+            }
             if (ShaftUtils.config.debug.probe || ShaftUtils.config.debug.recordSpots) {
                 add("§8Debug: probe ${if (ShaftUtils.config.debug.probe) "on" else "off"} · ${SpawnData.learnedCount()} learned spots")
             }
