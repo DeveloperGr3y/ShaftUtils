@@ -34,6 +34,11 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
+    @Category(name = "Shaft Title", desc = "A title when you enter a shaft: its type and what corpses it has.")
+    var title = TitleConfig()
+
+    @Expose
+    @JvmField
     @Category(name = "Routes", desc = "Your own ordered mining routes, loaded per shaft type when you arrive.")
     var routes = RoutesConfig()
 
@@ -108,6 +113,20 @@ class CorpseConfig {
 
     // Not shown as an option; set in GUI > Edit GUI Locations.
     @Expose @JvmField var statusPosition = HudPosition()
+}
+
+class TitleConfig {
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Enabled", desc = "Show the shaft type and its corpses on screen when you enter a shaft.")
+    @ConfigEditorBoolean
+    var enabled = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Sounds", desc = "Play a sound with it (a fanfare for Jasper and Vanguard shafts).")
+    @ConfigEditorBoolean
+    var sounds = true
 }
 
 class RoutesConfig {

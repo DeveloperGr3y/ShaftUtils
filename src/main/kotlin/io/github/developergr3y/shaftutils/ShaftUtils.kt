@@ -15,6 +15,7 @@ import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
 import com.mojang.brigadier.arguments.StringArgumentType
 import io.github.developergr3y.shaftutils.hud.Waypoints
+import io.github.developergr3y.shaftutils.shaft.EntryTitle
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
 import io.github.notenoughupdates.moulconfig.managed.ManagedConfig
@@ -67,6 +68,7 @@ object ShaftUtils : ClientModInitializer {
             CorpseFinder.tick(client)
             RouteFollower.tick(client)
             RouteKeys.tick(client)
+            EntryTitle.tick()
         }
 
         // MoulConfig's openConfigGui() doesn't pass on the close event it saves on, so save when our screen closes.
@@ -89,6 +91,18 @@ object ShaftUtils : ClientModInitializer {
                         nextTick = { managedConfig.openConfigGui() }
                         1
                     }
+                    // Preview the entry titles (every kind, or one shaft). Remove before release.
+                    .then(ClientCommands.literal("testtitle")
+                        .executes {
+                            EntryTitle.test(null)
+                            1
+                        }
+                        .then(ClientCommands.argument("code", StringArgumentType.greedyString()).executes {
+                            val code = Routes.normaliseCode(StringArgumentType.getString(it, "code"))
+                            if (code == null || code == "CRYSTAL") chat("§cName a shaft, e.g. §fumber 1§c, §fjasper crystal§c or §fFAIR_1§c.")
+                            else EntryTitle.test(code)
+                            1
+                        }))
                     .then(ClientCommands.literal("gui").executes {
                         openHudEditor()
                         1

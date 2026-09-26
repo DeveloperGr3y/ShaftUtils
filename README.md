@@ -28,6 +28,11 @@ Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and f
 - Corpses are only marked once you can see them. Nothing is shown through walls.
 - When you've found as many corpses as the tab list says the shaft has, the rest of the spots clear.
 
+### Entry title
+Entering a shaft shows its type and what corpses it has, e.g. **Umber Shaft** / *3 Lapis · 1 Umber*. Crystal shafts
+read *Jasper Crystal*, *Peridot Crystal* and so on. Jasper and Vanguard shafts, the good ones, get a bigger title and a
+fanfare.
+
 ### With the Organ Donor talisman
 The talisman's ding gets higher as you get closer: its pitch gives your distance to the corpse it's following
 (distance ≈ 20 × √(2 − pitch), about half a block out on average). ShaftUtils turns that into:
