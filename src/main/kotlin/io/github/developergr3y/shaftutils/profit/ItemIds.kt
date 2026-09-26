@@ -14,6 +14,14 @@ object ItemIds {
     private val books = setOf("Ice Cold", "Lapidary", "Pristine", "Prismatic", "Compact")
 
     private val exceptions = mapOf(
+        "Redstone Dust" to "REDSTONE",
+        "Lapis Lazuli" to "INK_SACK:4",
+        "Mithril" to "MITHRIL_ORE",
+        "Goblin Egg" to "GOBLIN_EGG",
+        "Green Goblin Egg" to "GOBLIN_EGG_GREEN",
+        "Red Goblin Egg" to "GOBLIN_EGG_RED",
+        "Yellow Goblin Egg" to "GOBLIN_EGG_YELLOW",
+        "Blue Goblin Egg" to "GOBLIN_EGG_BLUE",
         "Glacite Powder" to "GLACITE_POWDER",
         "Mithril Powder" to "MITHRIL_POWDER",
         "Gemstone Powder" to "GEMSTONE_POWDER",
