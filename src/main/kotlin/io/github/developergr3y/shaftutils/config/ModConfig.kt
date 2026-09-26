@@ -150,8 +150,8 @@ class TitleConfig {
     @Expose
     @JvmField
     @ConfigOption(name = "Special Title Time", desc = "Seconds the title stays for Jasper and Vanguard shafts.")
-    @ConfigEditorSlider(minValue = 1f, maxValue = 15f, minStep = 0.5f)
-    var specialSeconds = 4.5f
+    @ConfigEditorSlider(minValue = 1f, maxValue = 10f, minStep = 0.5f)
+    var specialSeconds = 3f
 
     @Expose
     @JvmField

@@ -21,8 +21,8 @@ import kotlin.math.sin
  * Jasper (and Jasper Crystal) and Vanguard (Fairy) shafts are the good ones, so they get a bigger title, a longer
  * hold and a fanfare.
  *
- * A glow around the screen edges goes with it, in the gem's colour: a quick fade for most shafts, and a gold pulse
- * for as long as the title shows for the special ones.
+ * A glow around the screen edges goes with it for as long as the title shows, in the gem's colour (special shafts
+ * pulse between gold and their colour).
  */
 object EntryTitle {
     private val gems = mapOf(
@@ -150,8 +150,9 @@ object EntryTitle {
     fun render(graphics: GuiGraphicsExtractor, @Suppress("UNUSED_PARAMETER") deltaTracker: DeltaTracker) {
         if (!ShaftUtils.config.title.border || borderStart == 0L) return
         val since = System.currentTimeMillis() - borderStart
-        // Special: pulses gold / gem colour while the title is up, then fades. Others: a quick fade.
-        val (duration, fadeFrom) = if (borderSpecial) titleMs + 1_200L to titleMs else minOf(1_200L, titleMs + 500L) to 0L
+        // Lasts exactly as long as the title and fades out with it (special shafts pulse gold / gem colour).
+        val fadeOut = if (borderSpecial) 1_000L else 750L
+        val (duration, fadeFrom) = titleMs + fadeOut to titleMs
         if (since > duration) return
         val fade = if (since < fadeFrom) 1f else 1f - (since - fadeFrom).toFloat() / (duration - fadeFrom)
         val colour = if (borderSpecial) {
