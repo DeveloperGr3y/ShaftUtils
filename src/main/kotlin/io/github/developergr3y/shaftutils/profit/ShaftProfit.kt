@@ -19,7 +19,8 @@ import kotlin.math.abs
  *
  * Items come from three places (the usual way SkyBlock profit trackers work):
  *  - "[Sacks] +1,234 items" messages: hovering them lists every item added, e.g. "+1,234 Rough Jade Gemstone (...)".
- *    They arrive every ~30s, so the shaft keeps counting for a short while after you leave.
+ *    They arrive every ~30s, and Hypixel drops the unsent batch when you change server, so whatever went into your
+ *    sacks in the last few seconds before leaving isn't counted (usually little: you're walking out by then).
  *  - Your inventory: anything new that didn't go to your sacks.
  *  - The corpse loot summary in chat, counted as corpse loot. Those items also turn up in your sacks/inventory later,
  *    so they're set aside and not counted a second time as mining.
@@ -34,11 +35,8 @@ object ShaftProfit {
         var corpsesOpened = 0
     }
 
-    /**
-     * Sack messages come every ~30s. After leaving, the shaft is finished as soon as the next one arrives (it carries
-     * what you mined last), or after this long if none does.
-     */
-    private const val TAIL_MS = 35_000L
+    /** A moment after leaving before posting, for anything still arriving from the shaft (not a late sack batch: none comes). */
+    private const val TAIL_MS = 1_500L
     /** Corpse loot and sack withdrawals are set aside for this long while they turn up in sacks/inventory. */
     private const val SET_ASIDE_MS = 60_000L
 
@@ -110,8 +108,6 @@ object ShaftProfit {
                     if (adding && amount > 0) addMining(s, cleanName(m.groupValues[2]), amount, fromInventory = false)
                 }
             }
-            // Out of the shaft: this was the last batch, so post the summary now instead of waiting.
-            if (s.endedAt != null) finish(s)
             return
         }
         moved.find(text)?.let {
