@@ -1,6 +1,7 @@
 package io.github.developergr3y.shaftutils.corpse
 
 import io.github.developergr3y.shaftutils.ShaftUtils
+import io.github.developergr3y.shaftutils.profit.ShaftProfit
 import io.github.developergr3y.shaftutils.shaft.CorpseType
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Projection
@@ -111,6 +112,7 @@ object CorpseFinder {
                 (looted[corpse.type] ?: 0) > (lootedByType[corpse.type] ?: 0) -> {
                     corpse.looted = true
                     lastLootAt = now
+                    ShaftProfit.onCorpseLooted(corpse.type)
                     OrganDonor.clearTarget()
                     pendingLoot = null
                 }

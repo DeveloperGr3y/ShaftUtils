@@ -3,10 +3,13 @@ package io.github.developergr3y.shaftutils.config
 import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.hud.HudPosition
+import io.github.developergr3y.shaftutils.profit.KeyPriceType
+import io.github.developergr3y.shaftutils.profit.PriceType
 import io.github.notenoughupdates.moulconfig.Config
 import io.github.notenoughupdates.moulconfig.annotations.Category
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorInfoText
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider
@@ -36,6 +39,11 @@ class ModConfig : Config() {
     @JvmField
     @Category(name = "Routes", desc = "Your own ordered mining routes, loaded per shaft type when you arrive.")
     var routes = RoutesConfig()
+
+    @Expose
+    @JvmField
+    @Category(name = "Profit", desc = "What each shaft made: mining, corpse loot, minus the keys you used.")
+    var profit = ProfitConfig()
 
     @Expose
     @JvmField
@@ -170,6 +178,50 @@ class RoutesConfig {
     @ConfigOption(name = "Open Routes Folder", desc = "One file per shaft code, e.g. TOPA_1.json. CRYSTAL.json covers crystal shafts.")
     @ConfigEditorButton(buttonText = "Open")
     val openFolder = Runnable { ShaftUtils.openRoutesFolder() }
+}
+
+class ProfitConfig {
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Enabled", desc = "Track what each shaft makes: mining, corpse loot, minus keys used.")
+    @ConfigEditorBoolean
+    var enabled = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Chat Summary", desc = "Post the shaft's profit in chat when you leave it.")
+    @ConfigEditorBoolean
+    var chatSummary = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Show Breakdown", desc = "Add corpse and mining lines under the total.")
+    @ConfigEditorBoolean
+    var breakdown = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Share Buttons", desc = "Add [Copy] [Party] [Guild] buttons. They only fill your chat box.")
+    @ConfigEditorBoolean
+    var shareButtons = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Live Profit", desc = "Show this shaft's profit so far in the status panel.")
+    @ConfigEditorBoolean
+    var showLive = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Item Prices", desc = "Value items at the bazaar sell offer or instant sell price.")
+    @ConfigEditorDropdown
+    var priceType = PriceType.SELL_OFFER
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Key Prices", desc = "Cost keys at the bazaar instant buy or buy order price.")
+    @ConfigEditorDropdown
+    var keyPriceType = KeyPriceType.INSTANT_BUY
 }
 
 class DebugConfig {

@@ -9,6 +9,7 @@ import io.github.developergr3y.shaftutils.hud.HudEditScreen
 import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.developergr3y.shaftutils.hud.RouteRender
 import io.github.developergr3y.shaftutils.routes.RouteKeys
+import io.github.developergr3y.shaftutils.profit.ShaftProfit
 import io.github.developergr3y.shaftutils.hud.StatusHud
 import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
@@ -56,6 +57,7 @@ object ShaftUtils : ClientModInitializer {
 
         ClientLifecycleEvents.CLIENT_STARTED.register { OrganDonor.register() }
         CorpseFinder.register()
+        ShaftProfit.register()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             nextTick?.let {
@@ -66,6 +68,7 @@ object ShaftUtils : ClientModInitializer {
             CorpseFinder.tick(client)
             RouteFollower.tick(client)
             RouteKeys.tick(client)
+            ShaftProfit.tick(client)
         }
 
         // MoulConfig's openConfigGui() doesn't pass on the close event it saves on, so save when our screen closes.

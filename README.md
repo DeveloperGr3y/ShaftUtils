@@ -47,6 +47,19 @@ Ordered mining routes, loaded automatically when you enter a shaft.
 - Shows the current point as an outlined block with its number and distance, a line from your crosshair to it, and the
   next couple of points dimmer. Moves on when you're within 3 blocks; you can also set next/previous keys.
 
+## Shaft profit
+When you leave a shaft, ShaftUtils posts what it made, with [Copy] [Party] [Guild] buttons (they only fill your chat
+box):
+```
+[ShaftUtils] Profit from Jade shaft: 30.2m (12m 40s, 143m/h)
+ Corpses: 12.4m (3 opened: 14.1m loot − 1.7m keys)
+ Mining: 17.8m (Flawed Jade Gemstone ×212, ...)
+```
+- Mining: items added to your sacks (from the `[Sacks]` messages) and your inventory while in the shaft.
+- Corpses: the corpse loot summary, minus the price of the keys used to open them.
+- Prices from the bazaar (sell offer or instant sell; keys at instant buy or buy order). Items not on the bazaar are
+  listed as not priced.
+
 ## Commands
 | Command | |
 |---|---|

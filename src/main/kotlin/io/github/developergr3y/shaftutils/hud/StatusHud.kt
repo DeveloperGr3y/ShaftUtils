@@ -6,6 +6,7 @@ import io.github.developergr3y.shaftutils.corpse.CorpseFinder
 import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
 import io.github.developergr3y.shaftutils.corpse.OrganDonor
 import io.github.developergr3y.shaftutils.corpse.SpawnData
+import io.github.developergr3y.shaftutils.profit.ShaftProfit
 import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
@@ -77,6 +78,10 @@ object StatusHud {
             val by = if (RouteFollower.builtIn) " §8(Mining Cult)" else ""
             add(if (RouteFollower.finished) "§7Route: §aFinished$by" else "§7Route: §f${RouteFollower.index + 1}§7/${route.size}$by")
         }
+        ShaftProfit.session?.takeIf { ShaftUtils.config.profit.enabled && ShaftUtils.config.profit.showLive }?.let { s ->
+            val t = ShaftProfit.totals(s)
+            add("§7Profit: §6${ShaftProfit.coins(t.total)} §8(mining ${ShaftProfit.coins(t.mining)} · corpses ${ShaftProfit.coins(t.corpses)})")
+        }
     }
 
     /** Example lines for the editor when you're not in a shaft. */
@@ -86,6 +91,7 @@ object StatusHud {
         "§7Spots: §f2 §7to check §8/ 5  §7Found: §f1",
         "§7Organ Donor: §aCorpse §f~8m §e§l↗",
         "§7Route: §f3§7/24",
+        "§7Profit: §612.3m §8(mining 8.1m · corpses 4.2m)",
     )
 
     private fun dingLine(): String {
