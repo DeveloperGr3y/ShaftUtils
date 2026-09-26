@@ -4,7 +4,10 @@ import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.shaft.CorpseType
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
+import io.github.developergr3y.shaftutils.util.colourBefore
+import io.github.developergr3y.shaftutils.util.firstColour
 import io.github.developergr3y.shaftutils.util.stripFormatting
+import io.github.developergr3y.shaftutils.util.toLegacyString
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.core.component.DataComponents
@@ -99,11 +102,13 @@ object ShaftProfit {
         if (sacksHeader.containsMatchIn(text)) {
             for (hover in hovers(message).distinctBy { it.string }) {
                 var adding = true
-                for (line in hover.string.stripFormatting().lines()) {
+                for (legacyLine in hover.toLegacyString().lines()) {
+                    val line = legacyLine.stripFormatting()
                     if (line.contains("Removed items", ignoreCase = true)) adding = false
                     if (line.contains("Added items", ignoreCase = true)) adding = true
                     val m = sackLine.find(line) ?: continue
                     val amount = m.groupValues[1].replace(",", "").toLong()
+                    ItemIds.learnColour(cleanName(m.groupValues[2]), colourBefore(legacyLine, m.groupValues[2]))
                     if (adding && amount > 0) addMining(s, cleanName(m.groupValues[2]), amount, fromInventory = false)
                 }
             }
@@ -121,7 +126,14 @@ object ShaftProfit {
             text.lines().drop(1).forEach { readLootLine(s, it, now) }
             return
         }
-        if (now < readingLootUntil) text.lines().forEach { readLootLine(s, it, now) }
+        if (now < readingLootUntil) {
+            text.lines().forEach { readLootLine(s, it, now) }
+            // Loot lines are coloured by rarity.
+            for (legacyLine in message.toLegacyString().lines()) {
+                val m = lootLine.matchEntire(legacyLine.stripFormatting()) ?: continue
+                ItemIds.learnColour(cleanName(m.groupValues[1].removePrefix("+")), colourBefore(legacyLine, m.groupValues[1].trim()))
+            }
+        }
     }
 
     /** Between "REWARDS" and the closing ▬▬▬ border of a corpse loot message. */
@@ -171,6 +183,7 @@ object ShaftProfit {
             if (stack.isEmpty) continue
             val name = cleanName(stack.hoverName.string.stripFormatting())
             if (name == "Enchanted Book") continue
+            ItemIds.learnColour(name, firstColour(stack.hoverName.toLegacyString()))
             val id = stack.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getStringOr("id", "").orEmpty()
             ItemIds.learn(name, id)
             counts.merge(name, stack.count.toLong(), Long::plus)

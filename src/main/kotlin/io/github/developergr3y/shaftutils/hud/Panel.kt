@@ -1,6 +1,7 @@
 package io.github.developergr3y.shaftutils.hud
 
 import com.google.gson.annotations.Expose
+import io.github.developergr3y.shaftutils.ShaftUtils
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 
@@ -47,7 +48,7 @@ abstract class Panel(val label: String) {
         pose.pushMatrix()
         pose.translate(position.x.toFloat(), position.y.toFloat())
         pose.scale(position.scale)
-        graphics.fill(0, 0, width, height, 0x80000000.toInt())
+        if (ShaftUtils.config.gui.panelBackground) graphics.fill(0, 0, width, height, 0x80000000.toInt())
         lines.forEachIndexed { i, line ->
             val y = PADDING + i * LINE_HEIGHT
             if (i == hovered && line.onClick != null) graphics.fill(PADDING - 1, y - 1, width - PADDING + 1, y + LINE_HEIGHT - 1, 0x40FFFFFF)

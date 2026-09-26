@@ -7,6 +7,17 @@ package io.github.developergr3y.shaftutils.profit
  */
 object ItemIds {
     private val learned = mutableMapOf<String, String>()
+    private val colours = mutableMapOf<String, String>()
+    private val gemColours = mapOf("Rough" to "§f", "Flawed" to "§a", "Fine" to "§9", "Flawless" to "§5", "Perfect" to "§6")
+
+    /** Remember an item's rarity colour, as Hypixel wrote it (sack lists, loot messages, item names). */
+    fun learnColour(name: String, colour: String?) {
+        if (colour != null && colour != "§7" && colour != "§8") colours[name] = colour
+    }
+
+    /** The item's rarity colour: as seen in game, else by gemstone tier, else white. */
+    fun colourFor(name: String): String =
+        colours[name] ?: gem.matchEntire(name)?.let { gemColours[it.groupValues[1]] } ?: "§f"
 
     private val gem = Regex("^(Rough|Flawed|Fine|Flawless|Perfect) (\\w+) Gemstone$")
     private val book = Regex("^(?:Enchanted Book \\()?([A-Za-z' ]+?) ([IVX]+)\\)?$")

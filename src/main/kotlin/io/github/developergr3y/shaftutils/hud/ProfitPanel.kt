@@ -50,7 +50,7 @@ object ProfitPanel : Panel("Shaft Profit") {
             .filter { it.third > 0 }
             .sortedByDescending { it.third }
             .take(config.itemsShown)
-            .forEach { (name, n, value) -> lines += PanelLine(" §f$name §8×${compact(n)} §6${ShaftProfit.coins(value)}") }
+            .forEach { (name, n, value) -> lines += PanelLine(" ${ItemIds.colourFor(name)}$name §8×${compact(n)} §6${ShaftProfit.coins(value)}") }
         val keys = if (t.keys > 0) " §8· keys §c-${ShaftProfit.coins(t.keys)}" else ""
         lines += PanelLine("§7Corpses: ${colour(t.corpses)}${ShaftProfit.coins(t.corpses)} §8(${s.corpsesOpened} opened)")
         if (s.corpsesOpened > 0 || t.loot > 0) lines += PanelLine(" §8loot §6${ShaftProfit.coins(t.loot)}$keys")
@@ -64,8 +64,8 @@ object ProfitPanel : Panel("Shaft Profit") {
         PanelLine("§7Prices: §f[Insta-sell] §8(click to switch)"),
         PanelLine("§7Total: §612.3m §8(90m/h)"),
         PanelLine("§7Mining: §68.1m"),
-        PanelLine(" §fFlawed Jade Gemstone §8×140 §66.2m"),
-        PanelLine(" §fGlossy Gemstone §8×1 §61.5m"),
+        PanelLine(" §aFlawed Jade Gemstone §8×140 §66.2m"),
+        PanelLine(" §9Enchanted Glacite §8×40 §61.5m"),
         PanelLine("§7Corpses: §64.2m §8(2 opened)"),
         PanelLine(" §8loot §65.1m §8· keys §c-0.9m"),
     )

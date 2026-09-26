@@ -52,6 +52,12 @@ class ModConfig : Config() {
 }
 
 class GuiConfig {
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Panel Background", desc = "Draw a dark background behind the Corpse Helper and Shaft Profit panels.")
+    @ConfigEditorBoolean
+    var panelBackground = true
+
     @Transient
     @JvmField
     @ConfigOption(name = "Edit GUI Locations", desc = "Drag the panels to move them, scroll to resize. Also: §e/shaftutils gui")
