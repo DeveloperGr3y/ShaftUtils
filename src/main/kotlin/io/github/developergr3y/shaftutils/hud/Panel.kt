@@ -66,12 +66,12 @@ abstract class Panel(val label: String) {
         val colWidths = mutableListOf<Int>()
         for (line in lines.filter { it.columns }) {
             line.cells.forEachIndexed { i, c ->
-                val w = font.width(c.text)
+                val w = textWidth(c.text)
                 if (i < colWidths.size) colWidths[i] = maxOf(colWidths[i], w) else colWidths += w
             }
         }
         val tableWidth = if (colWidths.isEmpty()) 0 else colWidths.sum() + GAP * (colWidths.size - 1)
-        val flowWidth = lines.filter { !it.columns }.maxOfOrNull { l -> l.cells.sumOf { font.width(it.text) } + GAP * (l.cells.size - 1) } ?: 0
+        val flowWidth = lines.filter { !it.columns }.maxOfOrNull { l -> l.cells.sumOf { textWidth(it.text) } + GAP * (l.cells.size - 1) } ?: 0
         val inner = maxOf(tableWidth, flowWidth)
         width = inner + PADDING * 2
         height = lines.size * LINE_HEIGHT + PADDING * 2 - 1
@@ -83,7 +83,7 @@ abstract class Panel(val label: String) {
                 var x = PADDING
                 line.cells.forEachIndexed { i, c ->
                     val colWidth = colWidths.getOrElse(i) { 0 }
-                    val w = font.width(c.text)
+                    val w = textWidth(c.text)
                     // First column left, the rest right-aligned (the last one to the panel's right edge).
                     val right = if (i == line.cells.lastIndex) PADDING + inner else x + colWidth
                     val left = if (i == 0) x else right - w
@@ -93,7 +93,7 @@ abstract class Panel(val label: String) {
             } else {
                 var x = PADDING
                 for (c in line.cells) {
-                    val w = font.width(c.text)
+                    val w = textWidth(c.text)
                     cells += Placed(index, x, x + w, c)
                     x += w + GAP
                 }
@@ -151,6 +151,27 @@ abstract class Panel(val label: String) {
     }
 
     companion object {
+        /**
+         * Width of a "§"-formatted string as drawn. The font's own measurement leaves out bold (each bold character is
+         * drawn 1px wider), which made bold titles overlap what came after them.
+         */
+        fun textWidth(text: String): Int {
+            var bold = false
+            var extra = 0
+            var i = 0
+            while (i < text.length) {
+                if (text[i] == '§' && i + 1 < text.length) {
+                    val code = text[i + 1].lowercaseChar()
+                    if (code == 'l') bold = true else if (code == 'r' || code in '0'..'9' || code in 'a'..'f') bold = false
+                    i += 2
+                    continue
+                }
+                if (bold) extra++
+                i++
+            }
+            return Minecraft.getInstance().font.width(text) + extra
+        }
+
         const val PADDING = 3
         const val LINE_HEIGHT = 10
         const val GAP = 6

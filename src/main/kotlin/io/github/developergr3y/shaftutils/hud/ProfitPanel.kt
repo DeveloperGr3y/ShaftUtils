@@ -72,7 +72,7 @@ object ProfitPanel : Panel("Shaft Profit") {
             .sortedByDescending { it.third ?: 0.0 }
         items.take(config.itemsShown).forEach { (name, n, value) ->
             lines += PanelLine.row(
-                ItemIds.colourFor(name) + fit(ItemIds.shortName(name)),
+                "  " + ItemIds.colourFor(name) + fit(ItemIds.shortName(name)),
                 "§7×" + "%,d".format(n),
                 value?.let { "§6" + ShaftProfit.coins(it) } ?: "§8?",
             )
@@ -80,7 +80,7 @@ object ProfitPanel : Panel("Shaft Profit") {
         val rest = items.drop(config.itemsShown)
         if (rest.isNotEmpty()) {
             lines += PanelLine.row(
-                "§7${rest.size} more…", "",
+                "  §7${rest.size} more…", "",
                 "§6" + ShaftProfit.coins(rest.sumOf { it.third ?: 0.0 }),
                 tooltip = rest.map { (name, n, v) -> "${ItemIds.colourFor(name)}$name §7×${"%,d".format(n)} §6${v?.let { ShaftProfit.coins(it) } ?: "?"}" },
             )
@@ -118,10 +118,10 @@ object ProfitPanel : Panel("Shaft Profit") {
 
     override fun previewLines() = listOf(
         PanelLine(listOf(Cell("§6§lShaft Profit §7Jasper"), Cell("§8[§fInsta-buy§8]"), Cell("§8[§fShaft§8]"))),
-        PanelLine.row("§aFlawed Jasper", "§7×12,007", "§68.0m"),
-        PanelLine.row("§fRough Jasper", "§7×59,882", "§6421k"),
-        PanelLine.row("§9Ench Glacite", "§7×48", "§687k"),
-        PanelLine.row("§73 more…", "", "§652k"),
+        PanelLine.row("  §aFlawed Jasper", "§7×12,007", "§68.0m"),
+        PanelLine.row("  §fRough Jasper", "§7×59,882", "§6421k"),
+        PanelLine.row("  §9Ench Glacite", "§7×48", "§687k"),
+        PanelLine.row("  §73 more…", "", "§652k"),
         PanelLine.row("§7Corpse loot §8(2)", "", "§61.1m"),
         PanelLine.row("§7Keys", "", "§c-3.0m"),
         PanelLine.row("§e§lProfit", "", "§6§l6.7m"),
