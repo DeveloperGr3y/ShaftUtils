@@ -256,7 +256,7 @@ object ShaftProfit {
         }
         lines.forEach { ShaftUtils.chat(it) }
         if (config.shareButtons) {
-            val plain = "Profit from $shaft: ${coins(t.total)} (Corpses ${coins(t.corpses)}, Mining ${coins(t.mining)})"
+            val plain = "[ShaftUtils] Profit from $shaft: ${coins(t.total)} (Corpses ${coins(t.corpses)}, Mining ${coins(t.mining)})"
             Compat.chat.addClientSystemMessage(
                 Component.literal("§b[ShaftUtils] ")
                     .append(button("§e[Copy]", ClickEvent.CopyToClipboard(plain), "Copy: §f$plain"))
