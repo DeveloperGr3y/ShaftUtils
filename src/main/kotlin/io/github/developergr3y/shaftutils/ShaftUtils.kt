@@ -130,13 +130,13 @@ object ShaftUtils : ClientModInitializer {
         }
         .then(ClientCommands.literal("import")
             .executes { importRoute(Mineshaft.code); 1 }
-            .then(ClientCommands.argument("code", StringArgumentType.word()).executes {
-                importRoute(StringArgumentType.getString(it, "code").uppercase()); 1
+            .then(ClientCommands.argument("code", StringArgumentType.greedyString()).executes {
+                importRoute(codeArg(StringArgumentType.getString(it, "code")) ?: return@executes 0); 1
             }))
         .then(ClientCommands.literal("delete")
             .executes { deleteRoute(Mineshaft.code); 1 }
-            .then(ClientCommands.argument("code", StringArgumentType.word()).executes {
-                deleteRoute(StringArgumentType.getString(it, "code").uppercase()); 1
+            .then(ClientCommands.argument("code", StringArgumentType.greedyString()).executes {
+                deleteRoute(codeArg(StringArgumentType.getString(it, "code")) ?: return@executes 0); 1
             }))
         .then(ClientCommands.literal("next").executes { RouteFollower.advance(); 1 })
         .then(ClientCommands.literal("back").executes { RouteFollower.back(); 1 })
@@ -151,6 +151,13 @@ object ShaftUtils : ClientModInitializer {
             1
         })
         .then(ClientCommands.literal("folder").executes { openRoutesFolder(); 1 })
+
+    /** A typed shaft code, tidied up ("amber_1" -> "AMBE_1"), or null with a message if it isn't one. */
+    private fun codeArg(input: String): String? {
+        Routes.normaliseCode(input)?.let { return it }
+        chat("§c\"$input\" isn't a shaft code. Use the code from the scoreboard, e.g. §fTOPA_1§c, §fRUBY_C§c or §fCRYSTAL§c.")
+        return null
+    }
 
     private fun importRoute(code: String?) {
         if (code == null) {

@@ -81,6 +81,28 @@ object Routes {
 
     fun reload() = cache.clear()
 
+    private val types = mapOf(
+        "TOPAZ" to "TOPA", "SAPPHIRE" to "SAPP", "AMETHYST" to "AMET", "AMBER" to "AMBE", "JADE" to "JADE",
+        "TITANIUM" to "TITA", "UMBER" to "UMBE", "TUNGSTEN" to "TUNG", "FAIRY" to "FAIR", "LITTLEFOOT" to "LITT",
+        "RUBY" to "RUBY", "ONYX" to "ONYX", "AQUAMARINE" to "AQUA", "CITRINE" to "CITR", "PERIDOT" to "PERI",
+        "JASPER" to "JASP", "OPAL" to "OPAL",
+    )
+    private val variants = mapOf("1" to "1", "ONE" to "1", "2" to "2", "TWO" to "2", "C" to "C", "CRYSTAL" to "C", "L" to "L")
+
+    /**
+     * Turns what you typed into a shaft code: "TOPA_1" stays, "amber_1" -> "AMBE_1", "jasper crystal" -> "JASP_C",
+     * "CRYSTAL" stays (the shared crystal route). Null if it isn't a real shaft.
+     */
+    fun normaliseCode(input: String): String? {
+        val parts = input.trim().uppercase().split(Regex("[\\s_\\-]+")).filter { it.isNotEmpty() }
+        if (parts == listOf("CRYSTAL")) return "CRYSTAL"
+        if (parts.size != 2) return null
+        val type = types[parts[0]] ?: parts[0].takeIf { it in types.values } ?: return null
+        val variant = variants[parts[1]] ?: return null
+        if ((type == "LITT") != (variant == "L")) return null
+        return "${type}_$variant"
+    }
+
     fun parse(text: String): List<RoutePoint> {
         val trimmed = text.trim()
         if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
