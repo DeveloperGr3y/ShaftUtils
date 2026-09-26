@@ -1,7 +1,6 @@
 package io.github.developergr3y.shaftutils.corpse
 
 import io.github.developergr3y.shaftutils.ShaftUtils
-import io.github.developergr3y.shaftutils.debug.Probe
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import net.minecraft.client.Minecraft
 import net.minecraft.client.resources.sounds.SoundInstance
@@ -14,7 +13,7 @@ import kotlin.math.sqrt
 /**
  * The Organ Donor talisman "Sends out a Ding when within 20 blocks of an unlooted Frozen Corpse".
  *
- * What the probe logs showed (2 shafts, 159 dings):
+ * What we measured (36 shafts, 1,143 dings; see docs/RESEARCH.md):
  *  - The ding is a note block harp played at *your* position, so the sound itself says nothing about where the corpse is.
  *  - Its pitch gives your distance to the corpse: distance ≈ 20 × √(2 − pitch), accurate to about half a block
  *    (1.0 at 20 blocks, 2.0 on top of it). It's silent beyond 20 blocks.
@@ -64,7 +63,7 @@ object OrganDonor : SoundEventListener {
         if (session != Mineshaft.session) reset()
         val id = sound.identifier.toString()
         val isDing = id.endsWith(DING)
-        if (!isDing && !(Probe.enabled && ShaftUtils.config.debug.logAllSounds)) return
+        if (!isDing) return
 
         val player = Minecraft.getInstance().player
         val now = System.currentTimeMillis()
@@ -78,19 +77,6 @@ object OrganDonor : SoundEventListener {
             lastDistance = distance
             dingsThisShaft++
         }
-        Probe.log(
-            if (isDing) "ding" else "sound",
-            "id" to id,
-            "source" to sound.source.name,
-            "pitch" to sound.pitch.toDouble(),
-            "volume" to sound.volume.toDouble(),
-            "attenuation" to sound.attenuation.name,
-            "soundPos" to listOf(sound.x, sound.y, sound.z).map { Math.round(it * 10) / 10.0 },
-            "playerPos" to player?.let { listOf(it.x, it.y, it.z).map { v -> Math.round(v * 10) / 10.0 } },
-            "gapMs" to gap,
-            "distance" to distance,
-            "code" to Mineshaft.code,
-        )
     }
 
     private fun addSample(sample: Sample, gap: Long?) {

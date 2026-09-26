@@ -1,6 +1,5 @@
 package io.github.developergr3y.shaftutils.shaft
 
-import io.github.developergr3y.shaftutils.debug.Probe
 import io.github.developergr3y.shaftutils.util.stripFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.world.level.Level
@@ -68,7 +67,6 @@ object Mineshaft {
         val level = client.level
         if (level !== lastLevel) {
             lastLevel = level
-            if (code != null) Probe.log("shaft_leave", "code" to code)
             code = null
             corpses = emptyList()
         }
@@ -82,7 +80,6 @@ object Mineshaft {
             code = found
             if (found != null) {
                 session++
-                Probe.log("shaft_enter", "code" to found, "scoreboard" to sidebar)
             }
         }
 
@@ -96,7 +93,6 @@ object Mineshaft {
         }
         if (corpses != lastCorpses) {
             lastCorpses = corpses
-            Probe.log("tab_corpses", "code" to code, "corpses" to corpses.map { "${it.type.label}:${if (it.looted) "LOOTED" else "NOT LOOTED"}" })
         }
     }
 

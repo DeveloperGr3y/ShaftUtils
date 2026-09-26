@@ -5,12 +5,14 @@ import io.github.developergr3y.shaftutils.corpse.CorpseFinder
 import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
 import io.github.developergr3y.shaftutils.corpse.OrganDonor
 import io.github.developergr3y.shaftutils.corpse.SpawnData
-import io.github.developergr3y.shaftutils.debug.Probe
 import io.github.developergr3y.shaftutils.hud.HudEditScreen
 import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.developergr3y.shaftutils.hud.RouteRender
 import io.github.developergr3y.shaftutils.routes.RouteKeys
-import io.github.developergr3y.shaftutils.hud.StatusHud
+import io.github.developergr3y.shaftutils.profit.ShaftProfit
+import io.github.developergr3y.shaftutils.hud.Panels
+import io.github.developergr3y.shaftutils.hud.CorpseHelper
+import io.github.developergr3y.shaftutils.hud.ProfitPanel
 import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -58,6 +60,7 @@ object ShaftUtils : ClientModInitializer {
 
         ClientLifecycleEvents.CLIENT_STARTED.register { OrganDonor.register() }
         CorpseFinder.register()
+        ShaftProfit.register()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             nextTick?.let {
@@ -68,6 +71,7 @@ object ShaftUtils : ClientModInitializer {
             CorpseFinder.tick(client)
             RouteFollower.tick(client)
             RouteKeys.tick(client)
+            ShaftProfit.tick(client)
             EntryTitle.tick()
         }
 
@@ -79,7 +83,8 @@ object ShaftUtils : ClientModInitializer {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("route"), RouteRender::render)
         HudElementRegistry.addLast(id("shaft_title_border"), EntryTitle::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("waypoints"), Waypoints::render)
-        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("status"), StatusHud::render)
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("panels"), Panels::render)
+        Panels.register()
 
         registerCommands()
     }
@@ -92,6 +97,11 @@ object ShaftUtils : ClientModInitializer {
                         nextTick = { managedConfig.openConfigGui() }
                         1
                     }
+                    .then(ClientCommands.literal("resetprofit").executes {
+                        ShaftProfit.resetSession()
+                        chat("Session profit reset.")
+                        1
+                    })
                     // Preview the entry titles with your settings: every kind in turn, or one shaft.
                     .then(testTitlesCommand("testtitles"))
                     .then(testTitlesCommand("testtitle"))
@@ -112,10 +122,7 @@ object ShaftUtils : ClientModInitializer {
                         1
                     })
                     .then(routeCommand())
-                    .then(ClientCommands.literal("probe").executes {
-                        chat("Probe logs are in §f${Probe.folder.path}")
-                        1
-                    }),
+,
             )
         }
     }
@@ -221,7 +228,6 @@ object ShaftUtils : ClientModInitializer {
         val pos = BlockPos.containing(player.position())
         if (SpawnData.learn(type, variant, pos)) {
             chat("§aAdded a corpse spot for §f${Mineshaft.code}§a at ${pos.x}, ${pos.y}, ${pos.z}")
-            Probe.log("spot_added_manually", "code" to Mineshaft.code, "pos" to listOf(pos.x, pos.y, pos.z))
         } else {
             chat("§eThere's already a known spot there.")
         }
@@ -252,7 +258,8 @@ object ShaftUtils : ClientModInitializer {
     }
 
     fun resetHud() {
-        config.corpses.statusPosition = HudPosition()
+        CorpseHelper.position = CorpseHelper.defaultPosition()
+        ProfitPanel.position = ProfitPanel.defaultPosition()
         saveConfig()
     }
 

@@ -1,7 +1,7 @@
 package io.github.developergr3y.shaftutils.corpse
 
 import io.github.developergr3y.shaftutils.ShaftUtils
-import io.github.developergr3y.shaftutils.debug.Probe
+import io.github.developergr3y.shaftutils.profit.ShaftProfit
 import io.github.developergr3y.shaftutils.shaft.CorpseType
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Projection
@@ -62,7 +62,6 @@ object CorpseFinder {
     private const val REOPEN_FIT = 1.2
     /** A spot whose distances match the ding readings this well (blocks, RMS) is the one being dinged for. */
     private const val SPOT_FIT = 1.8
-    private const val POSITION_LOG_MS = 500L
 
     var spots: List<Spot> = emptyList()
         private set
@@ -94,14 +93,12 @@ object CorpseFinder {
             if (player == Minecraft.getInstance().player) {
                 corpses[entity.uuid]?.takeIf { !it.looted }?.let {
                     pendingLoot = it to System.currentTimeMillis()
-                    Probe.log("corpse_interact", "type" to it.type.label, "pos" to vec(it.pos), "code" to Mineshaft.code)
                 }
             }
             InteractionResult.PASS
         }
         ClientReceiveMessageEvents.GAME.register { message, overlay ->
             if (!overlay && pendingLoot != null && message.string.stripFormatting().contains("Key to unlock this corpse")) {
-                Probe.log("corpse_locked", "type" to pendingLoot?.first?.type?.label, "code" to Mineshaft.code)
                 pendingLoot = null
             }
         }
@@ -115,9 +112,9 @@ object CorpseFinder {
                 (looted[corpse.type] ?: 0) > (lootedByType[corpse.type] ?: 0) -> {
                     corpse.looted = true
                     lastLootAt = now
+                    ShaftProfit.onCorpseLooted(corpse.type)
                     OrganDonor.clearTarget()
                     pendingLoot = null
-                    Probe.log("corpse_looted", "type" to corpse.type.label, "pos" to vec(corpse.pos), "code" to Mineshaft.code)
                 }
                 now - at > LOOT_CONFIRM_MS -> pendingLoot = null
             }
@@ -152,7 +149,6 @@ object CorpseFinder {
             estimate = null
         }
         checkAllFound()
-        logPosition(player.position())
     }
 
     /**
@@ -177,7 +173,6 @@ object CorpseFinder {
     private fun clearSpot(spot: Spot, reason: String) {
         spot.state = SpotState.CLEARED
         spot.clearedBy = reason
-        Probe.log("spot_checked", "code" to Mineshaft.code, "pos" to listOf(spot.pos.x, spot.pos.y, spot.pos.z), "result" to "CLEARED", "reason" to reason)
     }
 
     /** Which spot the dings point to, or failing that an estimate from the readings alone. */
@@ -194,7 +189,6 @@ object CorpseFinder {
             .minByOrNull { it.second }?.first
         if (best != null && best.state == SpotState.CLEARED) {
             // The dings say a corpse is here after all (we cleared it by mistake): bring it back.
-            Probe.log("spot_reopened", "code" to Mineshaft.code, "pos" to listOf(best.pos.x, best.pos.y, best.pos.z), "wasClearedBy" to best.clearedBy)
             best.state = SpotState.TO_CHECK
             best.clearedBy = null
             best.visibleChecks = 0
@@ -203,23 +197,12 @@ object CorpseFinder {
         estimate = if (likelySpot == null) OrganDonor.estimate() else null
     }
 
-    private var lastPositionLog = 0L
-
-    /** Probe: where you are twice a second, so dings and silences can be matched to positions afterwards. */
-    private fun logPosition(feet: Vec3) {
-        val now = System.currentTimeMillis()
-        if (!Probe.enabled || now - lastPositionLog < POSITION_LOG_MS) return
-        lastPositionLog = now
-        Probe.log("pos", "p" to vec(feet), "dinging" to OrganDonor.dinging, "code" to Mineshaft.code)
-    }
-
     private fun startShaft() {
         clear()
         session = Mineshaft.session
         val type = Mineshaft.type
         val variant = Mineshaft.variant
         spots = if (type != null && variant != null) SpawnData.spots(type, variant).map { Spot(it) } else emptyList()
-        Probe.log("spots_loaded", "code" to Mineshaft.code, "count" to spots.size)
         if (spots.isEmpty() && ShaftUtils.config.debug.recordSpots) {
             ShaftUtils.chat("§eNo known corpse spots for §f${Mineshaft.code}§e yet. Any corpse you see will be recorded.")
         }
@@ -251,8 +234,6 @@ object CorpseFinder {
             if (!seen) continue
 
             if (type == null) {
-                // Unknown helmet: log it (once seen) so we can spot corpse helmets we don't know about yet.
-                Probe.log("armor_stand_seen", "helmetId" to id, "helmetName" to helmet.hoverName.string.stripFormatting(), "pos" to vec(pos))
                 continue
             }
             addCorpse(entity, type, id, distance, "sight")
@@ -273,7 +254,6 @@ object CorpseFinder {
         if (entity.uuid in corpses) return
         val pos = entity.position()
         corpses[entity.uuid] = Corpse(entity.uuid, type, pos)
-        Probe.log("corpse_seen", "type" to type.label, "helmetId" to id, "pos" to vec(pos), "distance" to distance, "how" to how, "code" to Mineshaft.code)
         if (ShaftUtils.config.corpses.announce) ShaftUtils.chat("Found a ${type.formatted}§r corpse §7(${distance.toInt()}m)")
 
         val shaftType = Mineshaft.type
@@ -282,7 +262,6 @@ object CorpseFinder {
             SpawnData.learn(shaftType, variant, BlockPos.containing(pos))
         ) {
             ShaftUtils.chat("§aRecorded a new corpse spot for §f${Mineshaft.code}§a (${SpawnData.learnedCount()} learned)")
-            Probe.log("spot_learned", "code" to Mineshaft.code, "pos" to vec(pos))
         }
     }
 
@@ -306,7 +285,6 @@ object CorpseFinder {
             }
             if (corpses.values.any { it.pos.distanceTo(spot.centre) <= CORPSE_AT_SPOT }) {
                 spot.state = SpotState.CORPSE
-                Probe.log("spot_checked", "code" to Mineshaft.code, "pos" to listOf(spot.pos.x, spot.pos.y, spot.pos.z), "result" to "CORPSE", "distance" to distance)
             } else {
                 clearSpot(spot, "sight")
             }
@@ -327,7 +305,6 @@ object CorpseFinder {
             it.state = SpotState.CLEARED
             it.clearedBy = "all found"
         }
-        Probe.log("all_found", "code" to Mineshaft.code, "count" to expected)
         ShaftUtils.chat("§aAll $expected corpses found!")
     }
 
