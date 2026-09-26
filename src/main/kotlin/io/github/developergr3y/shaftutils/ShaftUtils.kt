@@ -6,7 +6,10 @@ import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
 import io.github.developergr3y.shaftutils.corpse.OrganDonor
 import io.github.developergr3y.shaftutils.corpse.SpawnData
 import io.github.developergr3y.shaftutils.debug.Probe
+import io.github.developergr3y.shaftutils.hud.HudEditScreen
+import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.developergr3y.shaftutils.hud.RouteRender
+import io.github.developergr3y.shaftutils.routes.RouteKeys
 import io.github.developergr3y.shaftutils.hud.StatusHud
 import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
@@ -63,6 +66,7 @@ object ShaftUtils : ClientModInitializer {
             Mineshaft.tick(client)
             CorpseFinder.tick(client)
             RouteFollower.tick(client)
+            RouteKeys.tick(client)
         }
 
         // MoulConfig's openConfigGui() doesn't pass on the close event it saves on, so save when our screen closes.
@@ -85,6 +89,10 @@ object ShaftUtils : ClientModInitializer {
                         nextTick = { managedConfig.openConfigGui() }
                         1
                     }
+                    .then(ClientCommands.literal("gui").executes {
+                        openHudEditor()
+                        1
+                    })
                     .then(ClientCommands.literal("export").executes {
                         exportSpots()
                         1
@@ -204,6 +212,15 @@ object ShaftUtils : ClientModInitializer {
         } else {
             chat("§eThere's already a known spot there.")
         }
+    }
+
+    fun openHudEditor() {
+        nextTick = { Compat.setScreen(HudEditScreen()) }
+    }
+
+    fun resetHud() {
+        config.corpses.statusPosition = HudPosition()
+        saveConfig()
     }
 
     fun saveConfig() = managedConfig.saveToFile()

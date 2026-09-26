@@ -2,10 +2,13 @@ package io.github.developergr3y.shaftutils.config
 
 import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
+import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.notenoughupdates.moulconfig.Config
 import io.github.notenoughupdates.moulconfig.annotations.Category
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorInfoText
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption
 import io.github.notenoughupdates.moulconfig.common.text.StructuredText
@@ -21,6 +24,11 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
+    @Category(name = "GUI", desc = "Move and resize the status panel (§e/shaftutils gui§7).")
+    var gui = GuiConfig()
+
+    @Expose
+    @JvmField
     @Category(name = "Corpse Finder", desc = "Spawn spots that clear as you check them, and corpse waypoints once seen.")
     var corpses = CorpseConfig()
 
@@ -33,6 +41,20 @@ class ModConfig : Config() {
     @JvmField
     @Category(name = "Debug", desc = "Data gathering while we work out how corpses and the ding behave.")
     var debug = DebugConfig()
+}
+
+class GuiConfig {
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Edit GUI Locations", desc = "Drag the status panel to move it, scroll to resize. Also: §e/shaftutils gui")
+    @ConfigEditorButton(buttonText = "Edit")
+    val edit = Runnable { ShaftUtils.openHudEditor() }
+
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Reset GUI Locations", desc = "Put the status panel back to its default position and size.")
+    @ConfigEditorButton(buttonText = "Reset")
+    val reset = Runnable { ShaftUtils.resetHud() }
 }
 
 class CorpseConfig {
@@ -84,25 +106,40 @@ class CorpseConfig {
     @ConfigEditorBoolean
     var showStatus = true
 
-    @Expose
-    @JvmField
-    @ConfigOption(name = "Panel X", desc = "Status panel position from the left.")
-    @ConfigEditorSlider(minValue = 0f, maxValue = 600f, minStep = 5f)
-    var statusX = 5
-
-    @Expose
-    @JvmField
-    @ConfigOption(name = "Panel Y", desc = "Status panel position from the top.")
-    @ConfigEditorSlider(minValue = 0f, maxValue = 400f, minStep = 5f)
-    var statusY = 60
+    // Not shown as an option; set in GUI > Edit GUI Locations.
+    @Expose @JvmField var statusPosition = HudPosition()
 }
 
 class RoutesConfig {
     @Expose
     @JvmField
-    @ConfigOption(name = "Enabled", desc = "Load your route for the shaft you enter. Add routes with §e/shaftutils route§7.")
+    @ConfigOption(name = "Enabled", desc = "Load a route for the shaft you enter. Add your own with §e/shaftutils route§7.")
     @ConfigEditorBoolean
     var enabled = true
+
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Built-in routes by Mining Cult", desc = "The routes that come with ShaftUtils are made by the Mining Cult community. Thank you!")
+    @ConfigEditorInfoText(infoTitle = "Credits")
+    var credit = false
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Use Built-in Routes", desc = "Use Mining Cult's routes when you haven't added your own for a shaft.")
+    @ConfigEditorBoolean
+    var useBuiltIn = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Next Point Key", desc = "Skip to the next point on the route.")
+    @ConfigEditorKeybind(defaultKey = -1)
+    var nextKey = -1
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Previous Point Key", desc = "Go back to the previous point on the route.")
+    @ConfigEditorKeybind(defaultKey = -1)
+    var backKey = -1
 
     @Expose
     @JvmField
@@ -140,13 +177,13 @@ class DebugConfig {
     @JvmField
     @ConfigOption(name = "Probe Logging", desc = "Log dings, corpse sightings and shaft info to config/shaftutils/probe.")
     @ConfigEditorBoolean
-    var probe = true
+    var probe = false
 
     @Expose
     @JvmField
     @ConfigOption(name = "Record New Spots", desc = "Save corpses seen away from known spots as new spawn spots.")
     @ConfigEditorBoolean
-    var recordSpots = true
+    var recordSpots = false
 
     @Expose
     @JvmField

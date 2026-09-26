@@ -13,6 +13,8 @@ import net.minecraft.world.phys.Vec3
 object RouteFollower {
     var route: List<RoutePoint>? = null
         private set
+    var builtIn = false
+        private set
     var index = 0
         private set
     var finished = false
@@ -42,10 +44,13 @@ object RouteFollower {
         index = 0
         finished = false
         val code = Mineshaft.code ?: return
-        route = Routes.forShaft(code)
-        route?.let {
-            ShaftUtils.chat("Loaded route for §f$code§r §7(${it.size} points)")
-            Probe.log("route_loaded", "code" to code, "points" to it.size)
+        val loaded = Routes.forShaft(code)
+        route = loaded?.points
+        builtIn = loaded?.builtIn ?: false
+        loaded?.let {
+            val source = if (it.builtIn) "Mining Cult route" else "your route"
+            ShaftUtils.chat("Loaded $source for §f$code§r §7(${it.points.size} points)")
+            Probe.log("route_loaded", "code" to code, "points" to it.points.size, "builtIn" to it.builtIn)
         }
     }
 

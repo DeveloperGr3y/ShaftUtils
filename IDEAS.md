@@ -7,9 +7,8 @@ Not built yet. Roughly in the order we'd tackle them.
 - Draw a line/arrow in the world towards the likely spot.
 
 ## Routes follow-ups
-- Keybinds for next/back.
 - Record a route in game (press a key at each point).
 
 ## Other
 - Share a found corpse's location to party chat with a button.
-- Mute the Organ Donor ding once every corpse is found.
+- Mute the Organ Donor ding once every corpse is found (needs a mixin to cancel the sound).

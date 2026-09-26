@@ -11,10 +11,14 @@ import java.io.File
 /** One stop on a route: a block, an optional label, and an optional colour (0xRRGGBB). */
 class RoutePoint(val pos: BlockPos, val name: String?, val colour: Int?)
 
+/** A loaded route and where it came from (your own file, or one of Mining Cult's that ship with the mod). */
+class Route(val points: List<RoutePoint>, val builtIn: Boolean)
+
 /**
- * Mineshaft routes: an ordered list of waypoints per shaft code, supplied by you. None ship with the mod.
+ * Mineshaft routes: an ordered list of waypoints per shaft code.
  *
- * One file per shaft in config/shaftutils/routes/, named after the shaft code: TOPA_1.json, RUBY_C.json, ...
+ *  - Built in: Mining Cult's routes, in assets/shaftutils/routes/ (credited in the Routes settings).
+ *  - Yours: config/shaftutils/routes/, one file per shaft code (TOPA_1.json, RUBY_C.json, ...). Yours win.
  * A file named CRYSTAL.json is used for any crystal shaft (codes ending _C) that has no file of its own.
  *
  * Accepted formats (so routes from other places work as-is):
@@ -25,24 +29,37 @@ class RoutePoint(val pos: BlockPos, val name: String?, val colour: Int?)
  */
 object Routes {
     val dir get() = File(ShaftUtils.configDir, "routes")
-    private val cache = mutableMapOf<String, List<RoutePoint>?>()
+    private val cache = mutableMapOf<String, Route?>()
 
-    /** The route for a shaft code, or null if you haven't added one. */
-    fun forShaft(code: String): List<RoutePoint>? {
+    /** The route for a shaft code: yours if you've added one, else the built-in one (if enabled), else null. */
+    fun forShaft(code: String): Route? {
         if (code in cache) return cache[code]
+        val route = userRoute(code) ?: if (ShaftUtils.config.routes.useBuiltIn) builtInRoute(code) else null
+        cache[code] = route
+        return route
+    }
+
+    private fun userRoute(code: String): Route? {
         val file = File(dir, "$code.json").takeIf { it.exists() }
             ?: if (code.endsWith("_C")) File(dir, "CRYSTAL.json").takeIf { it.exists() } else null
-        val route = file?.let {
+        return file?.let {
             try {
-                parse(it.readText())
+                Route(parse(it.readText()), builtIn = false)
             } catch (e: Exception) {
                 ShaftUtils.logger.error("Could not read route ${it.name}", e)
                 ShaftUtils.chat("§cCouldn't read route §f${it.name}§c: ${e.message}")
                 null
             }
         }
-        cache[code] = route
-        return route
+    }
+
+    private fun builtInRoute(code: String): Route? {
+        val names = listOfNotNull(code, "CRYSTAL".takeIf { code.endsWith("_C") })
+        for (name in names) {
+            val text = javaClass.getResourceAsStream("/assets/shaftutils/routes/$name.json")?.reader()?.use { it.readText() } ?: continue
+            return Route(parse(text), builtIn = true)
+        }
+        return null
     }
 
     /** Parses [text] and saves it as the route for [code]. Returns how many points it has. */
