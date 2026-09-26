@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"id": "shaftutils",
+	"version": "${version}",
+	"name": "ShaftUtils",
+	"description": "Glacite Mineshaft helpers for Hypixel SkyBlock: corpse spawn spots that clear as you check them, and corpse waypoints once you've seen one. Open the config with /shaftutils.",
+	"authors": ["DeveloperGr3y"],
+	"license": "All-Rights-Reserved",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			{
+				"adapter": "kotlin",
+				"value": "io.github.developergr3y.shaftutils.ShaftUtils"
+			}
+		]
+	},
+	"accessWidener": "shaftutils.classtweaker",
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "${minecraft_range}",
+		"java": ">=25",
+		"fabric-api": "*",
+		"fabric-language-kotlin": "*"
+	}
+}
