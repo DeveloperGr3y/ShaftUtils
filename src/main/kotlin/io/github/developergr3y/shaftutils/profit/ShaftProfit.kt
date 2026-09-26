@@ -34,7 +34,10 @@ object ShaftProfit {
         var corpsesOpened = 0
     }
 
-    /** Sack messages come every ~30s; keep counting this long after leaving so the last batch is included. */
+    /**
+     * Sack messages come every ~30s. After leaving, the shaft is finished as soon as the next one arrives (it carries
+     * what you mined last), or after this long if none does.
+     */
     private const val TAIL_MS = 35_000L
     /** Corpse loot and sack withdrawals are set aside for this long while they turn up in sacks/inventory. */
     private const val SET_ASIDE_MS = 60_000L
@@ -46,6 +49,10 @@ object ShaftProfit {
 
     var session: Session? = null
         private set
+
+    /** Hypixel puts icon glyphs (private-use characters) before some names, e.g. gemstones. Strip them. */
+    private val icons = Regex("[\\uE000-\\uF8FF]")
+    fun cleanName(name: String) = name.replace(icons, "").replace(Regex("\\s+"), " ").trim()
     private var lastSession = -1
 
     /** Items set aside: name -> (amount, until). Mining gains of these are skipped until they've been used up. */
@@ -89,24 +96,26 @@ object ShaftProfit {
         val text = message.string.stripFormatting()
         val now = System.currentTimeMillis()
         if (Mineshaft.inShaft && Probe.enabled) {
-            Probe.log("chat", "text" to text, "hover" to hovers(message).map { it.string.stripFormatting() }.ifEmpty { null })
+            Probe.log("chat", "text" to text, "hover" to hovers(message).map { it.string.stripFormatting() }.distinct().ifEmpty { null })
         }
 
         if (sacksHeader.containsMatchIn(text)) {
-            for (hover in hovers(message)) {
+            for (hover in hovers(message).distinctBy { it.string }) {
                 var adding = true
                 for (line in hover.string.stripFormatting().lines()) {
                     if (line.contains("Removed items", ignoreCase = true)) adding = false
                     if (line.contains("Added items", ignoreCase = true)) adding = true
                     val m = sackLine.find(line) ?: continue
                     val amount = m.groupValues[1].replace(",", "").toLong()
-                    if (adding && amount > 0) addMining(s, m.groupValues[2], amount, fromInventory = false)
+                    if (adding && amount > 0) addMining(s, cleanName(m.groupValues[2]), amount, fromInventory = false)
                 }
             }
+            // Out of the shaft: this was the last batch, so post the summary now instead of waiting.
+            if (s.endedAt != null) finish(s)
             return
         }
         moved.find(text)?.let {
-            val name = it.groupValues[2]
+            val name = cleanName(it.groupValues[2])
             val amount = it.groupValues[1].replace(",", "").toLong()
             setAsideInventory[name] = ((setAsideInventory[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
             return
@@ -124,7 +133,7 @@ object ShaftProfit {
         if (line.isBlank() || line.trim().all { it == '▬' || it == '-' || it == '=' }) return
         if (line.contains("REWARDS", ignoreCase = true) || line.contains("LOOT", ignoreCase = true)) return
         val m = lootLine.matchEntire(line) ?: return
-        val name = m.groupValues[1].trim().removePrefix("+").trim()
+        val name = cleanName(m.groupValues[1].removePrefix("+"))
         val amount = m.groupValues[2].replace(",", "").toLongOrNull() ?: 1
         if (name.isEmpty() || name.length > 48) return
         s.corpseLoot.merge(name, amount, Long::plus)
@@ -151,7 +160,7 @@ object ShaftProfit {
         for (i in 0 until inventory.containerSize) {
             val stack = inventory.getItem(i)
             if (stack.isEmpty) continue
-            val name = stack.hoverName.string.stripFormatting().trim()
+            val name = cleanName(stack.hoverName.string.stripFormatting())
             val id = stack.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getStringOr("id", "").orEmpty()
             ItemIds.learn(name, id)
             counts.merge(name, stack.count.toLong(), Long::plus)
@@ -160,9 +169,14 @@ object ShaftProfit {
         inventoryBaseline = counts
         if (before == null) return
         val s = session ?: return
-        for ((name, count) in counts) {
-            val gained = count - (before[name] ?: 0)
-            if (gained > 0) addMining(s, name, gained, fromInventory = true)
+        for (name in counts.keys + before.keys) {
+            val change = (counts[name] ?: 0) - (before[name] ?: 0)
+            when {
+                change > 0 -> addMining(s, name, change, fromInventory = true)
+                // Used up while mining (e.g. Compact turning Hard Stone into Enchanted Hard Stone, which then goes to
+                // your sacks and is counted there). Keys are already charged to the corpse, so they don't count.
+                change < 0 && !name.endsWith(" Key") -> removeMining(s, name, -change)
+            }
         }
     }
 
@@ -182,6 +196,12 @@ object ShaftProfit {
         }
         s.mining.merge(name, left, Long::plus)
         if (Probe.enabled) Probe.log("item_gain", "name" to name, "amount" to left, "source" to if (fromInventory) "inventory" else "sacks", "code" to s.code)
+    }
+
+    private fun removeMining(s: Session, name: String, amount: Long) {
+        s.mining.merge(name, -amount, Long::plus)
+        if (s.mining[name] == 0L) s.mining.remove(name)
+        if (Probe.enabled) Probe.log("item_loss", "name" to name, "amount" to amount, "code" to s.code)
     }
 
     // --- totals ---
