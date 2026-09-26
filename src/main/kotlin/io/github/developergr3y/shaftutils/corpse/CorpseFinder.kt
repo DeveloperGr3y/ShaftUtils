@@ -6,6 +6,7 @@ import io.github.developergr3y.shaftutils.shaft.CorpseType
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Projection
 import io.github.developergr3y.shaftutils.util.stripFormatting
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents
 import net.fabricmc.fabric.api.event.player.UseEntityCallback
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -79,23 +80,49 @@ object CorpseFinder {
     private var session = -1
     private var ticks = 0
     private var lastLootAt = 0L
+    /** The corpse you last right-clicked, until the tab list confirms it was looted (or it needed a key). */
+    private var pendingLoot: Pair<Corpse, Long>? = null
+    /** How many of each corpse type the tab list showed as looted last check. */
+    private var lootedByType: Map<CorpseType, Int> = emptyMap()
+    private const val LOOT_CONFIRM_MS = 8_000L
     /** Where you've been recently (time, feet), to know where the talisman was actually silent. */
     private val recent = ArrayDeque<Pair<Long, Vec3>>()
 
     fun register() {
+        // Right-clicking doesn't mean it was looted (it may need a key you don't have): wait for the tab list.
         UseEntityCallback.EVENT.register { player, _, _, entity, _ ->
             if (player == Minecraft.getInstance().player) {
-                corpses[entity.uuid]?.let {
-                    if (!it.looted) {
-                        it.looted = true
-                        lastLootAt = System.currentTimeMillis()
-                        OrganDonor.clearTarget()
-                        Probe.log("corpse_interact", "type" to it.type.label, "pos" to vec(it.pos), "code" to Mineshaft.code)
-                    }
+                corpses[entity.uuid]?.takeIf { !it.looted }?.let {
+                    pendingLoot = it to System.currentTimeMillis()
+                    Probe.log("corpse_interact", "type" to it.type.label, "pos" to vec(it.pos), "code" to Mineshaft.code)
                 }
             }
             InteractionResult.PASS
         }
+        ClientReceiveMessageEvents.GAME.register { message, overlay ->
+            if (!overlay && pendingLoot != null && message.string.stripFormatting().contains("Key to unlock this corpse")) {
+                Probe.log("corpse_locked", "type" to pendingLoot?.first?.type?.label, "code" to Mineshaft.code)
+                pendingLoot = null
+            }
+        }
+    }
+
+    /** A corpse counts as looted once the tab list shows one more of its type looted after you clicked it. */
+    private fun confirmLoot(now: Long) {
+        val looted = Mineshaft.corpses.filter { it.looted }.groupingBy { it.type }.eachCount()
+        pendingLoot?.let { (corpse, at) ->
+            when {
+                (looted[corpse.type] ?: 0) > (lootedByType[corpse.type] ?: 0) -> {
+                    corpse.looted = true
+                    lastLootAt = now
+                    OrganDonor.clearTarget()
+                    pendingLoot = null
+                    Probe.log("corpse_looted", "type" to corpse.type.label, "pos" to vec(corpse.pos), "code" to Mineshaft.code)
+                }
+                now - at > LOOT_CONFIRM_MS -> pendingLoot = null
+            }
+        }
+        lootedByType = looted
     }
 
     fun tick(client: Minecraft) {
@@ -114,6 +141,7 @@ object CorpseFinder {
         recent.addLast(now to player.position())
         while (recent.isNotEmpty() && now - recent.first().first > 5_000) recent.removeFirst()
 
+        confirmLoot(now)
         scanCorpses(level, eye)
         checkSpots(level, eye)
         if (ShaftUtils.config.corpses.useOrganDonor) {
@@ -204,6 +232,8 @@ object CorpseFinder {
         allFound = false
         recent.clear()
         lastLootAt = 0L
+        pendingLoot = null
+        lootedByType = emptyMap()
         likelySpot = null
         estimate = null
     }
