@@ -19,6 +19,8 @@ import kotlin.math.hypot
  */
 object RouteRender {
     private const val DEFAULT_COLOUR = 0x55FFFF
+    /** Right next to a point its outline fills the screen (and costs the most to draw); the label is enough then. */
+    private const val NO_OUTLINE_WITHIN = 2.5
 
     fun render(graphics: GuiGraphicsExtractor, @Suppress("UNUSED_PARAMETER") deltaTracker: DeltaTracker) {
         val config = ShaftUtils.config.routes
@@ -33,14 +35,15 @@ object RouteRender {
             val chain = listOf(route[index]) + ahead.map { it.second }
             chain.zipWithNext { a, b -> Draw.worldLine(graphics, centre(a), centre(b), dim(colour(b)), 1) }
         }
+        val eye = player.getEyePosition(1f)
         for ((i, point) in ahead.asReversed()) {
-            Draw.box(graphics, box(point), dim(colour(point)), 1)
+            if (eye.distanceTo(centre(point)) > NO_OUTLINE_WITHIN) Draw.box(graphics, box(point), dim(colour(point)), 1)
             label(graphics, point, "§7${i + 1}", player.position(), dim = true)
         }
 
         val current = route[index]
         val colour = 0xFF000000.toInt() or colour(current)
-        Draw.box(graphics, box(current), colour, 2)
+        if (eye.distanceTo(centre(current)) > NO_OUTLINE_WITHIN) Draw.box(graphics, box(current), colour, 2)
         val name = current.name?.takeIf { it.toIntOrNull() != index + 1 }?.let { " §f$it" }.orEmpty()
         label(graphics, current, "§b§l${index + 1}§7/${route.size}$name", player.position(), dim = false)
         if (config.showTracer) tracer(graphics, centre(current), colour)

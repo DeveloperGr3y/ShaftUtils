@@ -1,23 +1,99 @@
 package io.github.developergr3y.shaftutils.hud
 
 import io.github.developergr3y.shaftutils.util.Projection
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.roundToInt
 
-/** Lines and boxes drawn on the HUD over the world, using [Projection]. */
+/**
+ * Lines and boxes drawn on the HUD over the world, using [Projection].
+ *
+ * The GUI has no line primitive, so a line is drawn as rectangles. To keep that cheap, every line is first cut to the
+ * screen (a nearby block's edges can project thousands of pixels off screen), then drawn as runs: one rectangle per
+ * row or column it crosses rather than one per pixel.
+ */
 object Draw {
-    /** A straight line in GUI pixels, drawn as small squares (the GUI has no line primitive). */
     fun line(graphics: GuiGraphicsExtractor, x0: Double, y0: Double, x1: Double, y1: Double, colour: Int, thickness: Int = 1) {
-        val steps = max(abs(x1 - x0), abs(y1 - y0)).roundToInt().coerceIn(1, 4000)
-        for (i in 0..steps) {
-            val x = (x0 + (x1 - x0) * i / steps).roundToInt()
-            val y = (y0 + (y1 - y0) * i / steps).roundToInt()
-            graphics.fill(x, y, x + thickness, y + thickness, colour)
+        val window = Minecraft.getInstance().window
+        val clipped = clip(x0, y0, x1, y1, window.guiScaledWidth.toDouble(), window.guiScaledHeight.toDouble()) ?: return
+        val ax = clipped[0].roundToInt()
+        val ay = clipped[1].roundToInt()
+        val bx = clipped[2].roundToInt()
+        val by = clipped[3].roundToInt()
+        val dx = bx - ax
+        val dy = by - ay
+        if (abs(dx) >= abs(dy)) {
+            // Mostly horizontal: one rectangle per stretch at the same height.
+            if (dx == 0) {
+                graphics.fill(ax, ay, ax + thickness, ay + thickness, colour)
+                return
+            }
+            val step = if (dx > 0) 1 else -1
+            var runStart = ax
+            var runY = ay
+            var x = ax
+            while (true) {
+                val y = ay + ((x - ax).toDouble() * dy / dx).roundToInt()
+                if (y != runY) {
+                    rect(graphics, runStart, runY, x - step, runY, thickness, colour)
+                    runStart = x
+                    runY = y
+                }
+                if (x == bx) break
+                x += step
+            }
+            rect(graphics, runStart, runY, bx, runY, thickness, colour)
+        } else {
+            // Mostly vertical: one rectangle per stretch at the same x.
+            val step = if (dy > 0) 1 else -1
+            var runStart = ay
+            var runX = ax
+            var y = ay
+            while (true) {
+                val x = ax + ((y - ay).toDouble() * dx / dy).roundToInt()
+                if (x != runX) {
+                    rect(graphics, runX, runStart, runX, y - step, thickness, colour)
+                    runStart = y
+                    runX = x
+                }
+                if (y == by) break
+                y += step
+            }
+            rect(graphics, runX, runStart, runX, by, thickness, colour)
         }
+    }
+
+    /** Fill from (x0, y0) to (x1, y1) inclusive, in either order, [thickness] pixels wide. */
+    private fun rect(graphics: GuiGraphicsExtractor, x0: Int, y0: Int, x1: Int, y1: Int, thickness: Int, colour: Int) {
+        graphics.fill(minOf(x0, x1), minOf(y0, y1), maxOf(x0, x1) + thickness, maxOf(y0, y1) + thickness, colour)
+    }
+
+    /** Liang-Barsky: the part of the line inside [0, w] x [0, h], or null if none of it is. */
+    private fun clip(x0: Double, y0: Double, x1: Double, y1: Double, w: Double, h: Double): DoubleArray? {
+        val dx = x1 - x0
+        val dy = y1 - y0
+        var t0 = 0.0
+        var t1 = 1.0
+        val p = doubleArrayOf(-dx, dx, -dy, dy)
+        val q = doubleArrayOf(x0, w - x0, y0, h - y0)
+        for (i in 0..3) {
+            if (p[i] == 0.0) {
+                if (q[i] < 0) return null
+            } else {
+                val t = q[i] / p[i]
+                if (p[i] < 0) {
+                    if (t > t1) return null
+                    if (t > t0) t0 = t
+                } else {
+                    if (t < t0) return null
+                    if (t < t1) t1 = t
+                }
+            }
+        }
+        return doubleArrayOf(x0 + t0 * dx, y0 + t0 * dy, x0 + t1 * dx, y0 + t1 * dy)
     }
 
     /** A line between two world points, as it appears on screen. */
