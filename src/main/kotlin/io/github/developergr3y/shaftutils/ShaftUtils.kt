@@ -5,7 +5,6 @@ import io.github.developergr3y.shaftutils.corpse.CorpseFinder
 import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
 import io.github.developergr3y.shaftutils.corpse.OrganDonor
 import io.github.developergr3y.shaftutils.corpse.SpawnData
-import io.github.developergr3y.shaftutils.debug.Probe
 import io.github.developergr3y.shaftutils.hud.HudEditScreen
 import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.developergr3y.shaftutils.hud.RouteRender
@@ -106,10 +105,7 @@ object ShaftUtils : ClientModInitializer {
                         1
                     })
                     .then(routeCommand())
-                    .then(ClientCommands.literal("probe").executes {
-                        chat("Probe logs are in §f${Probe.folder.path}")
-                        1
-                    }),
+,
             )
         }
     }
@@ -215,7 +211,6 @@ object ShaftUtils : ClientModInitializer {
         val pos = BlockPos.containing(player.position())
         if (SpawnData.learn(type, variant, pos)) {
             chat("§aAdded a corpse spot for §f${Mineshaft.code}§a at ${pos.x}, ${pos.y}, ${pos.z}")
-            Probe.log("spot_added_manually", "code" to Mineshaft.code, "pos" to listOf(pos.x, pos.y, pos.z))
         } else {
             chat("§eThere's already a known spot there.")
         }

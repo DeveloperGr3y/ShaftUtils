@@ -39,7 +39,7 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
-    @Category(name = "Debug", desc = "Data gathering while we work out how corpses and the ding behave.")
+    @Category(name = "Debug", desc = "Recording new corpse spots, and exporting them to share.")
     var debug = DebugConfig()
 }
 
@@ -175,21 +175,9 @@ class RoutesConfig {
 class DebugConfig {
     @Expose
     @JvmField
-    @ConfigOption(name = "Probe Logging", desc = "Log dings, corpse sightings and shaft info to config/shaftutils/probe.")
-    @ConfigEditorBoolean
-    var probe = false
-
-    @Expose
-    @JvmField
     @ConfigOption(name = "Record New Spots", desc = "Save corpses seen away from known spots as new spawn spots.")
     @ConfigEditorBoolean
     var recordSpots = true
-
-    @Expose
-    @JvmField
-    @ConfigOption(name = "Log All Sounds", desc = "Also log every other sound in a shaft (big logs; for research).")
-    @ConfigEditorBoolean
-    var logAllSounds = false
 
     @Transient
     @JvmField
