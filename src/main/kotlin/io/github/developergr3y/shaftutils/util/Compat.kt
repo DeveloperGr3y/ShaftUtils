@@ -23,6 +23,7 @@ object Compat {
         setSubtitle(subtitle)
         setTitle(title)
     }
+    fun subtitle(subtitle: Component) = mc.gui.hud.setSubtitle(subtitle)
     //?} else {
     /*val screen: Screen? get() = mc.screen
     fun setScreen(screen: Screen?) = mc.setScreen(screen)
@@ -33,5 +34,6 @@ object Compat {
         setSubtitle(subtitle)
         setTitle(title)
     }
+    fun subtitle(subtitle: Component) = mc.gui.setSubtitle(subtitle)
     *///?}
 }

@@ -29,12 +29,12 @@ data class CorpseStatus(val type: CorpseType, val looted: Boolean)
  * Which Glacite Mineshaft you're in, and what corpses it has.
  *  - Shaft code: the scoreboard has a line containing e.g. "TOPA_1", "RUBY_C" (crystal) or "LITT_L".
  *  - Corpses: the tab list's Frozen Corpses widget has a line per corpse, e.g. "Lapis: NOT LOOTED".
- * Checked once a second; resets when you change world.
+ * Checked four times a second (the entry title waits on it); resets when you change world.
  */
 object Mineshaft {
     private val codePattern = Regex("\\b([A-Z]{4})_([12CL])\\b")
     private val corpseLine = Regex("^\\s*(Lapis|Umber|Tungsten|Vanguard): (NOT LOOTED|LOOTED)\\s*$", RegexOption.IGNORE_CASE)
-    private const val CHECK_INTERVAL_MS = 1_000L
+    private const val CHECK_INTERVAL_MS = 250L
 
     /** e.g. "TOPA_1"; null when not in a mineshaft (or the code isn't on the scoreboard). */
     var code: String? = null

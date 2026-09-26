@@ -96,14 +96,25 @@ object EntryTitle {
             session = Mineshaft.session
             enteredAt = now
         }
-        if (shownFor == session) return
-        val corpses = Mineshaft.corpses
-        if (corpses.isEmpty() && now - enteredAt < WAIT_MS) return
-        shownFor = session
         val code = Mineshaft.code ?: return
+        val corpses = Mineshaft.corpses
+        // Title showing, corpse list not in yet: fill it in as soon as the tab list has it (or give up after a bit).
+        if (shownFor == session) {
+            if (waitingForCorpses && (corpses.isNotEmpty() || now - enteredAt > WAIT_MS)) {
+                waitingForCorpses = false
+                Compat.subtitle(Component.literal(subtitle(code, corpses.map { it.type }, waiting = false)))
+            }
+            return
+        }
+        // Not while the "Loading terrain" screen is still up, or the title plays behind it.
+        if (Compat.screen != null) return
+        shownFor = session
         if (!config.shafts.shows(code.substringBefore('_'))) return
         show(code, corpses.map { it.type })
+        waitingForCorpses = corpses.isEmpty()
     }
+
+    private var waitingForCorpses = false
 
     /** Shows the title for [code] with these corpses (also used by /shaftutils testtitles). */
     fun show(code: String, corpses: List<CorpseType>) {
@@ -119,14 +130,7 @@ object EntryTitle {
         }
 
         val title = if (isSpecial) "§6§l✦ $colour§l${shaft.uppercase()} §6§l✦" else "$colour§l$shaft"
-        val counts = corpses.groupingBy { it }.eachCount().entries
-            .sortedByDescending { it.key.ordinal }
-            .joinToString(" §8· ") { (t, n) -> "§f$n ${t.formatted}" }
-        val subtitle = when {
-            counts.isEmpty() -> "§7No corpses listed"
-            isSpecial -> "$counts §8· §6§lLucky!"
-            else -> counts
-        }
+        val subtitle = subtitle(code, corpses, waiting = corpses.isEmpty() && queue.isEmpty() && Mineshaft.inShaft)
         val seconds = if (isSpecial) ShaftUtils.config.title.specialSeconds else ShaftUtils.config.title.seconds
         titleMs = (seconds * 1000).toLong()
         if (isSpecial) Compat.title(Component.literal(title), Component.literal(subtitle), 10, (seconds * 20).toInt(), 20)
@@ -179,6 +183,19 @@ object EntryTitle {
     }
 
     private fun withAlpha(rgb: Int, alpha: Float) = ((alpha * 255).toInt().coerceIn(0, 255) shl 24) or (rgb and 0xFFFFFF)
+
+    /** "3 Lapis · 1 Umber" (plus "Lucky!" on special shafts), or a placeholder while the tab list catches up. */
+    private fun subtitle(code: String, corpses: List<CorpseType>, waiting: Boolean): String {
+        val counts = corpses.groupingBy { it }.eachCount().entries
+            .sortedByDescending { it.key.ordinal }
+            .joinToString(" §8· ") { (t, n) -> "§f$n ${t.formatted}" }
+        return when {
+            counts.isEmpty() && waiting -> "§8…"
+            counts.isEmpty() -> "§7No corpses listed"
+            code.substringBefore('_') in special -> "$counts §8· §6§lLucky!"
+            else -> counts
+        }
+    }
 
     private fun sound(name: String, pitch: Float, volume: Float = 1f) {
         val sound = BuiltInRegistries.SOUND_EVENT.getValue(Identifier.withDefaultNamespace(name)) ?: return
