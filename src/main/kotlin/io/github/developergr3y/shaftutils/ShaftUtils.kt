@@ -17,6 +17,7 @@ import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
 import com.mojang.brigadier.arguments.StringArgumentType
 import io.github.developergr3y.shaftutils.hud.Waypoints
+import io.github.developergr3y.shaftutils.shaft.EntryTitle
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
 import io.github.notenoughupdates.moulconfig.managed.ManagedConfig
@@ -71,6 +72,7 @@ object ShaftUtils : ClientModInitializer {
             RouteFollower.tick(client)
             RouteKeys.tick(client)
             ShaftProfit.tick(client)
+            EntryTitle.tick()
         }
 
         // MoulConfig's openConfigGui() doesn't pass on the close event it saves on, so save when our screen closes.
@@ -79,6 +81,7 @@ object ShaftUtils : ClientModInitializer {
         }
 
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("route"), RouteRender::render)
+        HudElementRegistry.addLast(id("shaft_title_border"), EntryTitle::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("waypoints"), Waypoints::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("panels"), Panels::render)
         Panels.register()
@@ -99,6 +102,9 @@ object ShaftUtils : ClientModInitializer {
                         chat("Session profit reset.")
                         1
                     })
+                    // Preview the entry titles with your settings: every kind in turn, or one shaft.
+                    .then(testTitlesCommand("testtitles"))
+                    .then(testTitlesCommand("testtitle"))
                     .then(ClientCommands.literal("gui").executes {
                         openHudEditor()
                         1
@@ -224,6 +230,26 @@ object ShaftUtils : ClientModInitializer {
             chat("§aAdded a corpse spot for §f${Mineshaft.code}§a at ${pos.x}, ${pos.y}, ${pos.z}")
         } else {
             chat("§eThere's already a known spot there.")
+        }
+    }
+
+    private fun testTitlesCommand(name: String) = ClientCommands.literal(name)
+        .executes {
+            EntryTitle.test(null)
+            1
+        }
+        .then(ClientCommands.argument("code", StringArgumentType.greedyString()).executes {
+            val code = Routes.normaliseCode(StringArgumentType.getString(it, "code"))
+            if (code == null || code == "CRYSTAL") chat("§cName a shaft, e.g. §fumber 1§c, §fjasper crystal§c or §fFAIR_1§c.")
+            else EntryTitle.test(code)
+            1
+        })
+
+    /** Close the settings and play every title, so you can see them with your settings. */
+    fun previewTitles() {
+        nextTick = {
+            Compat.setScreen(null)
+            EntryTitle.test(null)
         }
     }
 

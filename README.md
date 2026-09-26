@@ -30,10 +30,15 @@ Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and f
 - The **Corpse Helper** panel lists every corpse in the shaft (from the tab list): looted, found (with distance) or
   not found yet, and whether you have its key. It can hide itself once they're all looted.
 
+### Entry title
+Entering a shaft shows its type and what corpses it has, e.g. **Umber Shaft** / *3 Lapis · 1 Umber*. Crystal shafts
+read *Jasper Crystal*, *Peridot Crystal* and so on. Jasper and Vanguard shafts, the good ones, get a bigger title and a
+fanfare.
+
 ### With the Organ Donor talisman
 The talisman's ding gets higher as you get closer: its pitch gives your distance to the corpse it's following
 (distance ≈ 20 × √(2 − pitch), about half a block out on average; see [docs/RESEARCH.md](docs/RESEARCH.md)). ShaftUtils turns that into:
-- the distance and a direction arrow in the status panel;
+- the distance and a direction arrow in the Corpse Helper;
 - a green **likely corpse** marker on the spawn spot the dings point to;
 - clearing spots when it's been silent where you're standing (no unlooted corpse within 20 blocks);
 - an estimated position when no known spot fits.
@@ -70,6 +75,7 @@ chat box):
 | Command | |
 |---|---|
 | `/shaftutils` | Settings |
+| `/shaftutils testtitles [shaft]` | Preview the entry titles with your settings (all, or e.g. `opal crystal`) |
 | `/shaftutils resetprofit` | Reset the profit panel's session total |
 | `/shaftutils gui` | Move and resize the Corpse Helper and Shaft Profit panels |
 | `/shaftutils status` | Shaft code, tab corpses, spot counts |
