@@ -50,8 +50,9 @@ Ordered mining routes, loaded automatically when you enter a shaft.
   next couple of points dimmer. Moves on when you're within 3 blocks; you can also set next/previous keys.
 
 ## Shaft profit
-The **Shaft Profit** panel shows what the shaft has made so far: total and per hour, the most valuable mined items, and
-corpse loot minus keys. Click its Prices line with your inventory open to switch between insta-buy and insta-sell.
+The **Shaft Profit** panel shows what the shaft has made so far as a table: the most valuable items with counts and
+values, corpse loot, keys, profit, profit per hour and time. With your inventory open, click **[Insta-buy]** to switch
+prices and **[Shaft]** to switch to the whole session (every shaft since you started the game).
 
 When you leave a shaft, ShaftUtils also posts what it made, with [Copy] [Party] [Guild] buttons (they only fill your
 chat box):
@@ -69,6 +70,7 @@ chat box):
 | Command | |
 |---|---|
 | `/shaftutils` | Settings |
+| `/shaftutils resetprofit` | Reset the profit panel's session total |
 | `/shaftutils gui` | Move and resize the Corpse Helper and Shaft Profit panels |
 | `/shaftutils status` | Shaft code, tab corpses, spot counts |
 | `/shaftutils route` | Route status and list |

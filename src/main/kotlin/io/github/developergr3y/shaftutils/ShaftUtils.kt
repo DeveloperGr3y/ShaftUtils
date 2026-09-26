@@ -94,6 +94,11 @@ object ShaftUtils : ClientModInitializer {
                         nextTick = { managedConfig.openConfigGui() }
                         1
                     }
+                    .then(ClientCommands.literal("resetprofit").executes {
+                        ShaftProfit.resetSession()
+                        chat("Session profit reset.")
+                        1
+                    })
                     .then(ClientCommands.literal("gui").executes {
                         openHudEditor()
                         1

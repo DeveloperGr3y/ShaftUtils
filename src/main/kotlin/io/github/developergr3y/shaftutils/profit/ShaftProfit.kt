@@ -45,6 +45,8 @@ object ShaftProfit {
     private val sacksHeader = Regex("^\\[Sacks] ")
     private val sackLine = Regex("^\\s*([+-][\\d,]+) (.+?) \\((.+)\\)\\s*$")
     private val moved = Regex("^Moved ([\\d,]+) (.+?) from your Sacks to your inventory\\.?$")
+    /** "PRISTINE! You found ❁ Flawed Jasper Gemstone x4!" */
+    private val pristine = Regex("^PRISTINE! You found (.+?)(?: x([\\d,]+))?!$")
     private val lootLine = Regex("^\\s+(.+?)(?: x([\\d,]+))?\\s*$")
 
     var session: Session? = null
@@ -52,6 +54,8 @@ object ShaftProfit {
     /** The shaft you most recently left, shown by the profit panel until the next one starts. */
     var lastFinished: Session? = null
         private set
+    /** Every shaft since you started the game (for the panel's Session view). */
+    val finished = mutableListOf<Session>()
 
     /** Hypixel puts icon glyphs (private-use characters) before some names, e.g. gemstones. Strip them. */
     private val icons = Regex("[\\uE000-\\uF8FF]")
@@ -108,10 +112,18 @@ object ShaftProfit {
                     if (line.contains("Added items", ignoreCase = true)) adding = true
                     val m = sackLine.find(line) ?: continue
                     val amount = m.groupValues[1].replace(",", "").toLong()
-                    ItemIds.learnColour(cleanName(m.groupValues[2]), colourBefore(legacyLine, m.groupValues[2]))
                     if (adding && amount > 0) addMining(s, cleanName(m.groupValues[2]), amount, fromInventory = false)
                 }
             }
+            return
+        }
+        pristine.find(text)?.let {
+            // Counted now, so nothing is lost when you leave before the next sack batch; set aside so the same gems
+            // aren't counted again when they reach your sacks.
+            val name = cleanName(it.groupValues[1])
+            val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
+            s.mining.merge(name, amount, Long::plus)
+            setAside[name] = ((setAside[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
             return
         }
         moved.find(text)?.let {
@@ -131,7 +143,8 @@ object ShaftProfit {
             // Loot lines are coloured by rarity.
             for (legacyLine in message.toLegacyString().lines()) {
                 val m = lootLine.matchEntire(legacyLine.stripFormatting()) ?: continue
-                ItemIds.learnColour(cleanName(m.groupValues[1].removePrefix("+")), colourBefore(legacyLine, m.groupValues[1].trim()))
+                val name = cleanName(m.groupValues[1].removePrefix("+"))
+                ItemIds.learnColour(name, colourBefore(legacyLine, name))
             }
         }
     }
@@ -232,6 +245,29 @@ object ShaftProfit {
         val total get() = mining + corpses
     }
 
+    /** Several shafts added together (the Session view). Its start/end span the time actually spent in shafts. */
+    fun combine(sessions: List<Session>): Session? {
+        if (sessions.isEmpty()) return null
+        val now = System.currentTimeMillis()
+        val millis = sessions.sumOf { (it.endedAt ?: now) - it.startedAt }
+        val out = Session("${sessions.size}", now - millis).also { it.endedAt = now }
+        for (s in sessions) {
+            s.mining.forEach { (k, v) -> out.mining.merge(k, v, Long::plus) }
+            s.corpseLoot.forEach { (k, v) -> out.corpseLoot.merge(k, v, Long::plus) }
+            s.keysUsed.forEach { (k, v) -> out.keysUsed.merge(k, v, Int::plus) }
+            out.corpsesOpened += s.corpsesOpened
+        }
+        return out
+    }
+
+    /** Value of [amount] of [name] at the chosen prices, or null if it isn't on the bazaar. */
+    fun value(name: String, amount: Long) = Prices.sellValue(ItemIds.idFor(name))?.let { it * amount }
+
+    fun resetSession() {
+        finished.clear()
+        lastFinished = null
+    }
+
     fun totals(s: Session): Totals {
         val unpriced = mutableSetOf<String>()
         fun value(items: Map<String, Long>) = items.entries.sumOf { (name, amount) ->
@@ -254,6 +290,7 @@ object ShaftProfit {
         if (s.endedAt == null) s.endedAt = end
         if (s.mining.isEmpty() && s.corpseLoot.isEmpty() && s.keysUsed.isEmpty()) return
         lastFinished = s
+        finished += s
         val t = totals(s)
         val minutes = (end - s.startedAt) / 60_000.0
         if (ShaftUtils.config.profit.chatSummary) postSummary(s, t, minutes)

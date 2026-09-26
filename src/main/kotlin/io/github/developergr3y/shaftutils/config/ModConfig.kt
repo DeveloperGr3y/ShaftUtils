@@ -225,7 +225,7 @@ class ProfitConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Items Shown", desc = "How many of the most valuable mined items the panel lists.")
+    @ConfigOption(name = "Items Shown", desc = "How many of the most valuable items the panel lists (the rest are \"N more\").")
     @ConfigEditorSlider(minValue = 0f, maxValue = 10f, minStep = 1f)
     var itemsShown = 5
 
@@ -247,7 +247,8 @@ class ProfitConfig {
     @ConfigEditorDropdown
     var keyPriceType = KeyPriceType.INSTANT_BUY
 
-    // Not shown as an option; set in GUI > Edit GUI Locations.
+    // Not shown as options: the panel's Shaft / Session switch, and its position (GUI > Edit GUI Locations).
+    @Expose @JvmField var sessionView = false
     @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 150)
 }
 

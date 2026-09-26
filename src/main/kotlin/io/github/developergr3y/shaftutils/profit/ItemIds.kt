@@ -15,9 +15,17 @@ object ItemIds {
         if (colour != null && colour != "§7" && colour != "§8") colours[name] = colour
     }
 
-    /** The item's rarity colour: as seen in game, else by gemstone tier, else white. */
+    /** A few common mining items whose rarity we know, for when they haven't been seen as an item yet. */
+    private val knownColours = mapOf(
+        "Enchanted Glacite" to "§9", "Enchanted Hard Stone" to "§a", "Glacite" to "§f", "Hard Stone" to "§f",
+    )
+
+    /** The item's rarity colour: gemstones by tier, else as seen in game, else known, else white. */
     fun colourFor(name: String): String =
-        colours[name] ?: gem.matchEntire(name)?.let { gemColours[it.groupValues[1]] } ?: "§f"
+        gem.matchEntire(name)?.let { gemColours[it.groupValues[1]] } ?: colours[name] ?: knownColours[name] ?: "§f"
+
+    /** A shorter name for tight columns: "Enchanted Glacite" -> "Ench Glacite", "Flawed Jasper Gemstone" -> "Flawed Jasper". */
+    fun shortName(name: String) = name.replace("Enchanted ", "Ench ").removeSuffix(" Gemstone")
 
     private val gem = Regex("^(Rough|Flawed|Fine|Flawless|Perfect) (\\w+) Gemstone$")
     private val book = Regex("^(?:Enchanted Book \\()?([A-Za-z' ]+?) ([IVX]+)\\)?$")
