@@ -3,10 +3,13 @@ package io.github.developergr3y.shaftutils.config
 import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.hud.HudPosition
+import io.github.developergr3y.shaftutils.profit.KeyPriceType
+import io.github.developergr3y.shaftutils.profit.PriceType
 import io.github.notenoughupdates.moulconfig.Config
 import io.github.notenoughupdates.moulconfig.annotations.Category
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorInfoText
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider
@@ -24,7 +27,7 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
-    @Category(name = "GUI", desc = "Move and resize the status panel (§e/shaftutils gui§7).")
+    @Category(name = "GUI", desc = "Move and resize the panels (§e/shaftutils gui§7).")
     var gui = GuiConfig()
 
     @Expose
@@ -39,20 +42,31 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
+    @Category(name = "Profit", desc = "What each shaft made: mining, corpse loot, minus the keys you used.")
+    var profit = ProfitConfig()
+
+    @Expose
+    @JvmField
     @Category(name = "Debug", desc = "Recording new corpse spots, and exporting them to share.")
     var debug = DebugConfig()
 }
 
 class GuiConfig {
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Panel Background", desc = "Draw a dark background behind the Corpse Helper and Shaft Profit panels.")
+    @ConfigEditorBoolean
+    var panelBackground = true
+
     @Transient
     @JvmField
-    @ConfigOption(name = "Edit GUI Locations", desc = "Drag the status panel to move it, scroll to resize. Also: §e/shaftutils gui")
+    @ConfigOption(name = "Edit GUI Locations", desc = "Drag the panels to move them, scroll to resize. Also: §e/shaftutils gui")
     @ConfigEditorButton(buttonText = "Edit")
     val edit = Runnable { ShaftUtils.openHudEditor() }
 
     @Transient
     @JvmField
-    @ConfigOption(name = "Reset GUI Locations", desc = "Put the status panel back to its default position and size.")
+    @ConfigOption(name = "Reset GUI Locations", desc = "Put the panels back to their default positions and sizes.")
     @ConfigEditorButton(buttonText = "Reset")
     val reset = Runnable { ShaftUtils.resetHud() }
 }
@@ -102,12 +116,18 @@ class CorpseConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Status Panel", desc = "Show the shaft, its corpses, spots left and the Organ Donor ding.")
+    @ConfigOption(name = "Corpse Helper", desc = "Panel listing the shaft's corpses, whether they're looted, and the Organ Donor.")
     @ConfigEditorBoolean
     var showStatus = true
 
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Hide When All Looted", desc = "Hide the Corpse Helper once every corpse in the shaft is looted.")
+    @ConfigEditorBoolean
+    var hideWhenLooted = true
+
     // Not shown as an option; set in GUI > Edit GUI Locations.
-    @Expose @JvmField var statusPosition = HudPosition()
+    @Expose @JvmField var statusPosition = HudPosition(x = 5, y = 60)
 }
 
 class RoutesConfig {
@@ -170,6 +190,66 @@ class RoutesConfig {
     @ConfigOption(name = "Open Routes Folder", desc = "One file per shaft code, e.g. TOPA_1.json. CRYSTAL.json covers crystal shafts.")
     @ConfigEditorButton(buttonText = "Open")
     val openFolder = Runnable { ShaftUtils.openRoutesFolder() }
+}
+
+class ProfitConfig {
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Enabled", desc = "Track what each shaft makes: mining, corpse loot, minus keys used.")
+    @ConfigEditorBoolean
+    var enabled = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Chat Summary", desc = "Post the shaft's profit in chat when you leave it.")
+    @ConfigEditorBoolean
+    var chatSummary = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Show Breakdown", desc = "Add corpse and mining lines under the total.")
+    @ConfigEditorBoolean
+    var breakdown = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Share Buttons", desc = "Add [Copy] [Party] [Guild] buttons. They only fill your chat box.")
+    @ConfigEditorBoolean
+    var shareButtons = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Profit Panel", desc = "Panel with this shaft's profit so far: total, top items, corpses.")
+    @ConfigEditorBoolean
+    var showPanel = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Items Shown", desc = "How many of the most valuable items the panel lists (the rest are \"N more\").")
+    @ConfigEditorSlider(minValue = 0f, maxValue = 10f, minStep = 1f)
+    var itemsShown = 5
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Keep After Leaving", desc = "Minutes to keep showing the last shaft's profit after you leave.")
+    @ConfigEditorSlider(minValue = 0f, maxValue = 30f, minStep = 1f)
+    var keepMinutes = 5
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Item Prices", desc = "Insta-buy or insta-sell bazaar prices. Also: click it on the panel.")
+    @ConfigEditorDropdown
+    var priceType = PriceType.SELL_OFFER
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Key Prices", desc = "Cost keys at the bazaar instant buy or buy order price.")
+    @ConfigEditorDropdown
+    var keyPriceType = KeyPriceType.INSTANT_BUY
+
+    // Not shown as options: the panel's Shaft / Session switch, and its position (GUI > Edit GUI Locations).
+    @Expose @JvmField var sessionView = false
+    @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 150)
 }
 
 class DebugConfig {

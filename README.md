@@ -17,7 +17,7 @@ Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and f
 1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.5+ and [Fabric API](https://modrinth.com/mod/fabric-api).
 2. Download the jar for your Minecraft version (`+mc26.1` or `+mc26.2`) from
    [Releases](https://github.com/DeveloperGr3y/ShaftUtils/releases) and drop it in your `mods` folder. Needs Java 25.
-3. In game, `/shaftutils` opens the settings and `/shaftutils gui` moves the status panel.
+3. In game, `/shaftutils` opens the settings and `/shaftutils gui` moves the panels.
 
 ## Corpse finder
 - Entering a shaft puts a waypoint on every known spot a corpse can spawn in that shaft type. It ships with the spots
@@ -27,6 +27,8 @@ Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and f
   corpse waypoint with its type, distance and whether you have the key it needs.
 - Corpses are only marked once you can see them. Nothing is shown through walls.
 - When you've found as many corpses as the tab list says the shaft has, the rest of the spots clear.
+- The **Corpse Helper** panel lists every corpse in the shaft (from the tab list): looted, found (with distance) or
+  not found yet, and whether you have its key. It can hide itself once they're all looted.
 
 ### With the Organ Donor talisman
 The talisman's ding gets higher as you get closer: its pitch gives your distance to the corpse it's following
@@ -47,11 +49,29 @@ Ordered mining routes, loaded automatically when you enter a shaft.
 - Shows the current point as an outlined block with its number and distance, a line from your crosshair to it, and the
   next couple of points dimmer. Moves on when you're within 3 blocks; you can also set next/previous keys.
 
+## Shaft profit
+The **Shaft Profit** panel shows what the shaft has made so far as a table: the most valuable items with counts and
+values, corpse loot, keys, profit, profit per hour and time. With your inventory open, click **[Insta-buy]** to switch
+prices and **[Shaft]** to switch to the whole session (every shaft since you started the game).
+
+When you leave a shaft, ShaftUtils also posts what it made, with [Copy] [Party] [Guild] buttons (they only fill your
+chat box):
+```
+[ShaftUtils] Profit from Jade shaft: 30.2m (12m 40s, 143m/h)
+ Corpses: 12.4m (3 opened: 14.1m loot − 1.7m keys)
+ Mining: 17.8m (Flawed Jade Gemstone ×212, ...)
+```
+- Mining: items added to your sacks (from the `[Sacks]` messages) and your inventory while in the shaft.
+- Corpses: the corpse loot summary, minus the price of the keys used to open them.
+- Prices from the bazaar (insta-buy or insta-sell; keys at instant buy or buy order). Items not on the bazaar are
+  listed as not priced.
+
 ## Commands
 | Command | |
 |---|---|
 | `/shaftutils` | Settings |
-| `/shaftutils gui` | Move and resize the status panel |
+| `/shaftutils resetprofit` | Reset the profit panel's session total |
+| `/shaftutils gui` | Move and resize the Corpse Helper and Shaft Profit panels |
 | `/shaftutils status` | Shaft code, tab corpses, spot counts |
 | `/shaftutils route` | Route status and list |
 | `/shaftutils route import [code]` | Save the route on your clipboard for this shaft (or a named one) |
