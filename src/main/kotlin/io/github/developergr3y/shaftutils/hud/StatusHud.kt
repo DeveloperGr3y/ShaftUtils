@@ -77,9 +77,6 @@ object StatusHud {
             val by = if (RouteFollower.builtIn) " §8(Mining Cult)" else ""
             add(if (RouteFollower.finished) "§7Route: §aFinished$by" else "§7Route: §f${RouteFollower.index + 1}§7/${route.size}$by")
         }
-        if (ShaftUtils.config.debug.probe || ShaftUtils.config.debug.recordSpots) {
-            add("§8Debug: probe ${if (ShaftUtils.config.debug.probe) "on" else "off"} · ${SpawnData.learnedCount()} learned spots")
-        }
     }
 
     /** Example lines for the editor when you're not in a shaft. */

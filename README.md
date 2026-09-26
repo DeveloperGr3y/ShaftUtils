@@ -30,7 +30,7 @@ Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and f
 
 ### With the Organ Donor talisman
 The talisman's ding gets higher as you get closer: its pitch gives your distance to the corpse it's following
-(distance ≈ 20 × √(2 − pitch), about half a block out on average). ShaftUtils turns that into:
+(distance ≈ 20 × √(2 − pitch), about half a block out on average; see [docs/RESEARCH.md](docs/RESEARCH.md)). ShaftUtils turns that into:
 - the distance and a direction arrow in the status panel;
 - a green **likely corpse** marker on the spawn spot the dings point to;
 - clearing spots when it's been silent where you're standing (no unlooted corpse within 20 blocks);
@@ -57,7 +57,7 @@ Ordered mining routes, loaded automatically when you enter a shaft.
 | `/shaftutils route import [code]` | Save the route on your clipboard for this shaft (or a named one) |
 | `/shaftutils route next` / `back` / `restart` | Step through the route |
 | `/shaftutils route reload` / `delete [code]` / `folder` | Manage your route files |
-| `/shaftutils addspot` / `export` / `probe` | Debug: record a spot, export spots, find the probe logs |
+| `/shaftutils addspot` / `export` | Record a corpse spot where you stand / export spots to share |
 
 ## Heads up
 I wrote this with a lot of help from AI (Claude). I use it myself, but nobody else has reviewed it yet, so read the
@@ -70,9 +70,8 @@ and it doesn't show anything through walls.
 - Built-in routes by the **Mining Cult** community, used with their permission (not covered by the CC0 licence).
 - Licence: CC0 for ShaftUtils' own code. Third-party parts are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## Debug / data gathering
+## Sharing corpse spots
 In the Debug tab:
-- **Probe Logging** (off by default) writes dings, positions, corpse sightings and shaft info to `config/shaftutils/probe/<date>.jsonl`.
 - **Record New Spots** (on by default) saves corpses seen away from a known spot to `config/shaftutils/learned_spawns.json`.
 - `/shaftutils export` merges known + learned spots into `config/shaftutils/corpse_spawns.export.json`.
 

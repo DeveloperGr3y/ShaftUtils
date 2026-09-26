@@ -1,7 +1,6 @@
 package io.github.developergr3y.shaftutils.routes
 
 import io.github.developergr3y.shaftutils.ShaftUtils
-import io.github.developergr3y.shaftutils.debug.Probe
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import net.minecraft.client.Minecraft
 import net.minecraft.world.phys.Vec3
@@ -50,7 +49,6 @@ object RouteFollower {
         loaded?.let {
             val source = if (it.builtIn) "Mining Cult route" else "your route"
             ShaftUtils.chat("Loaded $source for §f$code§r §7(${it.points.size} points)")
-            Probe.log("route_loaded", "code" to code, "points" to it.points.size, "builtIn" to it.builtIn)
         }
     }
 
