@@ -77,6 +77,7 @@ object ShaftUtils : ClientModInitializer {
         }
 
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("route"), RouteRender::render)
+        HudElementRegistry.addLast(id("shaft_title_border"), EntryTitle::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("waypoints"), Waypoints::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("status"), StatusHud::render)
 

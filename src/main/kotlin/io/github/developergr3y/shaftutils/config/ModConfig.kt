@@ -4,6 +4,7 @@ import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.notenoughupdates.moulconfig.Config
+import io.github.notenoughupdates.moulconfig.annotations.Accordion
 import io.github.notenoughupdates.moulconfig.annotations.Category
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton
@@ -127,6 +128,91 @@ class TitleConfig {
     @ConfigOption(name = "Sounds", desc = "Play a sound with it (a fanfare for Jasper and Vanguard shafts).")
     @ConfigEditorBoolean
     var sounds = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Screen Border", desc = "A glow around the screen edges in the gem's colour (gold pulse for special shafts).")
+    @ConfigEditorBoolean
+    var border = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Title Time", desc = "Seconds the title stays on screen.")
+    @ConfigEditorSlider(minValue = 1f, maxValue = 10f, minStep = 0.5f)
+    var seconds = 2.5f
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Special Title Time", desc = "Seconds the title stays for Jasper and Vanguard shafts.")
+    @ConfigEditorSlider(minValue = 1f, maxValue = 15f, minStep = 0.5f)
+    var specialSeconds = 4.5f
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Shafts", desc = "Which shafts get a title. Each gem covers its shaft and its crystal shaft.")
+    @Accordion
+    var shafts = TitleShafts()
+}
+
+/** Which shaft types show an entry title (a gem covers its regular and crystal shafts). */
+class TitleShafts {
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Only Jasper & Vanguard", desc = "Turn every shaft off except Jasper and Vanguard.")
+    @ConfigEditorButton(buttonText = "Set")
+    val onlySpecial = Runnable { setAll(false); jasper = true; vanguard = true; ShaftUtils.saveConfig() }
+
+    @Transient
+    @JvmField
+    @ConfigOption(name = "All Shafts", desc = "Turn every shaft on.")
+    @ConfigEditorButton(buttonText = "Set")
+    val all = Runnable { setAll(true); ShaftUtils.saveConfig() }
+
+    @Expose @JvmField @ConfigOption(name = "Jasper", desc = "Jasper and Jasper Crystal shafts.") @ConfigEditorBoolean var jasper = true
+    @Expose @JvmField @ConfigOption(name = "Vanguard", desc = "Vanguard (Fairy) shafts.") @ConfigEditorBoolean var vanguard = true
+    @Expose @JvmField @ConfigOption(name = "Opal", desc = "Opal and Opal Crystal shafts.") @ConfigEditorBoolean var opal = true
+    @Expose @JvmField @ConfigOption(name = "Ruby", desc = "Ruby and Ruby Crystal shafts.") @ConfigEditorBoolean var ruby = true
+    @Expose @JvmField @ConfigOption(name = "Onyx", desc = "Onyx and Onyx Crystal shafts.") @ConfigEditorBoolean var onyx = true
+    @Expose @JvmField @ConfigOption(name = "Aquamarine", desc = "Aquamarine and Aquamarine Crystal shafts.") @ConfigEditorBoolean var aquamarine = true
+    @Expose @JvmField @ConfigOption(name = "Citrine", desc = "Citrine and Citrine Crystal shafts.") @ConfigEditorBoolean var citrine = true
+    @Expose @JvmField @ConfigOption(name = "Peridot", desc = "Peridot and Peridot Crystal shafts.") @ConfigEditorBoolean var peridot = true
+    @Expose @JvmField @ConfigOption(name = "Topaz", desc = "Topaz shafts.") @ConfigEditorBoolean var topaz = true
+    @Expose @JvmField @ConfigOption(name = "Sapphire", desc = "Sapphire shafts.") @ConfigEditorBoolean var sapphire = true
+    @Expose @JvmField @ConfigOption(name = "Amethyst", desc = "Amethyst shafts.") @ConfigEditorBoolean var amethyst = true
+    @Expose @JvmField @ConfigOption(name = "Amber", desc = "Amber shafts.") @ConfigEditorBoolean var amber = true
+    @Expose @JvmField @ConfigOption(name = "Jade", desc = "Jade shafts.") @ConfigEditorBoolean var jade = true
+    @Expose @JvmField @ConfigOption(name = "Titanium", desc = "Titanium shafts.") @ConfigEditorBoolean var titanium = true
+    @Expose @JvmField @ConfigOption(name = "Umber", desc = "Umber shafts.") @ConfigEditorBoolean var umber = true
+    @Expose @JvmField @ConfigOption(name = "Tungsten", desc = "Tungsten shafts.") @ConfigEditorBoolean var tungsten = true
+    @Expose @JvmField @ConfigOption(name = "Littlefoot's Den", desc = "Littlefoot's Den.") @ConfigEditorBoolean var littlefoot = true
+
+    /** Whether a shaft type code ("JASP", "OPAL", ...) shows a title. Unknown types do. */
+    fun shows(type: String): Boolean = when (type) {
+        "JASP" -> jasper
+        "FAIR" -> vanguard
+        "OPAL" -> opal
+        "RUBY" -> ruby
+        "ONYX" -> onyx
+        "AQUA" -> aquamarine
+        "CITR" -> citrine
+        "PERI" -> peridot
+        "TOPA" -> topaz
+        "SAPP" -> sapphire
+        "AMET" -> amethyst
+        "AMBE" -> amber
+        "JADE" -> jade
+        "TITA" -> titanium
+        "UMBE" -> umber
+        "TUNG" -> tungsten
+        "LITT" -> littlefoot
+        else -> true
+    }
+
+    private fun setAll(on: Boolean) {
+        jasper = on; vanguard = on; opal = on; ruby = on; onyx = on; aquamarine = on; citrine = on; peridot = on
+        topaz = on; sapphire = on; amethyst = on; amber = on; jade = on; titanium = on; umber = on; tungsten = on
+        littlefoot = on
+    }
 }
 
 class RoutesConfig {
