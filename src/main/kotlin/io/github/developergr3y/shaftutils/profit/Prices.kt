@@ -75,8 +75,9 @@ object Prices {
 }
 
 enum class PriceType(private val label: String) {
-    SELL_OFFER("Sell offer"),
-    INSTANT_SELL("Instant sell"),
+    // Names kept for saved settings: SELL_OFFER is the insta-buy price (what a sell offer gets), INSTANT_SELL insta-sell.
+    SELL_OFFER("Insta-buy"),
+    INSTANT_SELL("Insta-sell"),
     ;
 
     override fun toString() = label

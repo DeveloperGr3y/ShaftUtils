@@ -1,7 +1,6 @@
 package io.github.developergr3y.shaftutils.profit
 
 import io.github.developergr3y.shaftutils.ShaftUtils
-import io.github.developergr3y.shaftutils.debug.Probe
 import io.github.developergr3y.shaftutils.shaft.CorpseType
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
@@ -46,6 +45,9 @@ object ShaftProfit {
     private val lootLine = Regex("^\\s+(.+?)(?: x([\\d,]+))?\\s*$")
 
     var session: Session? = null
+        private set
+    /** The shaft you most recently left, shown by the profit panel until the next one starts. */
+    var lastFinished: Session? = null
         private set
 
     /** Hypixel puts icon glyphs (private-use characters) before some names, e.g. gemstones. Strip them. */
@@ -93,9 +95,6 @@ object ShaftProfit {
         if (!ShaftUtils.config.profit.enabled) return
         val text = message.string.stripFormatting()
         val now = System.currentTimeMillis()
-        if (Mineshaft.inShaft && Probe.enabled) {
-            Probe.log("chat", "text" to text, "hover" to hovers(message).map { it.string.stripFormatting() }.distinct().ifEmpty { null })
-        }
 
         if (sacksHeader.containsMatchIn(text)) {
             for (hover in hovers(message).distinctBy { it.string }) {
@@ -116,25 +115,39 @@ object ShaftProfit {
             setAsideInventory[name] = ((setAsideInventory[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
             return
         }
-        if (text.contains("CORPSE LOOT", ignoreCase = true) || text.contains("LOOT SUMMARY", ignoreCase = true)) {
+        if (text.contains("CORPSE LOOT", ignoreCase = true)) {
             readingLootUntil = now + 1_500
-            // The summary may be one multi-line message.
+            inRewards = false
             text.lines().drop(1).forEach { readLootLine(s, it, now) }
             return
         }
         if (now < readingLootUntil) text.lines().forEach { readLootLine(s, it, now) }
     }
 
+    /** Between "REWARDS" and the closing ▬▬▬ border of a corpse loot message. */
+    private var inRewards = false
+    /** Lines in the loot block that aren't items (milestones, XP, bonus drop notes). */
+    private val notAnItem = Regex("(?i)milestone|\\bxp\\b|bonus drop|skyblock xp|rng meter|you summoned")
+
     private fun readLootLine(s: Session, line: String, now: Long) {
-        if (line.isBlank() || line.trim().all { it == '▬' || it == '-' || it == '=' }) return
-        if (line.contains("REWARDS", ignoreCase = true) || line.contains("LOOT", ignoreCase = true)) return
+        if (line.isBlank()) return
+        if (line.trim().all { it == '▬' }) {
+            // Closing border: the loot list is over (milestone rewards can follow in a separate block).
+            if (inRewards) readingLootUntil = 0
+            inRewards = false
+            return
+        }
+        if (line.trim().equals("REWARDS", ignoreCase = true)) {
+            inRewards = true
+            return
+        }
+        if (!inRewards || notAnItem.containsMatchIn(line)) return
         val m = lootLine.matchEntire(line) ?: return
         val name = cleanName(m.groupValues[1].removePrefix("+"))
         val amount = m.groupValues[2].replace(",", "").toLongOrNull() ?: 1
         if (name.isEmpty() || name.length > 48) return
         s.corpseLoot.merge(name, amount, Long::plus)
         setAside[name] = ((setAside[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
-        Probe.log("corpse_loot_line", "name" to name, "amount" to amount, "code" to s.code)
     }
 
     /** A corpse was really looted (tab list confirmed): count the key it needed. */
@@ -157,6 +170,7 @@ object ShaftProfit {
             val stack = inventory.getItem(i)
             if (stack.isEmpty) continue
             val name = cleanName(stack.hoverName.string.stripFormatting())
+            if (name == "Enchanted Book") continue
             val id = stack.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getStringOr("id", "").orEmpty()
             ItemIds.learn(name, id)
             counts.merge(name, stack.count.toLong(), Long::plus)
@@ -191,13 +205,11 @@ object ShaftProfit {
             if (left == 0L) return
         }
         s.mining.merge(name, left, Long::plus)
-        if (Probe.enabled) Probe.log("item_gain", "name" to name, "amount" to left, "source" to if (fromInventory) "inventory" else "sacks", "code" to s.code)
     }
 
     private fun removeMining(s: Session, name: String, amount: Long) {
         s.mining.merge(name, -amount, Long::plus)
         if (s.mining[name] == 0L) s.mining.remove(name)
-        if (Probe.enabled) Probe.log("item_loss", "name" to name, "amount" to amount, "code" to s.code)
     }
 
     // --- totals ---
@@ -226,13 +238,11 @@ object ShaftProfit {
     private fun finish(s: Session) {
         session = null
         val end = s.endedAt ?: System.currentTimeMillis()
+        if (s.endedAt == null) s.endedAt = end
         if (s.mining.isEmpty() && s.corpseLoot.isEmpty() && s.keysUsed.isEmpty()) return
+        lastFinished = s
         val t = totals(s)
         val minutes = (end - s.startedAt) / 60_000.0
-        Probe.log(
-            "shaft_profit", "code" to s.code, "minutes" to minutes, "mining" to t.mining, "loot" to t.loot, "keys" to t.keys,
-            "items" to s.mining, "corpseLoot" to s.corpseLoot, "unpriced" to t.unpriced.toList(),
-        )
         if (ShaftUtils.config.profit.chatSummary) postSummary(s, t, minutes)
     }
 
@@ -299,5 +309,5 @@ object ShaftProfit {
 
     private fun compact(n: Long) = if (n >= 1000) "%.1fk".format(n / 1000.0) else n.toString()
     private fun colour(v: Double) = if (v < 0) "§c" else "§6"
-    private fun duration(minutes: Double) = "${minutes.toInt()}m ${((minutes % 1) * 60).toInt()}s"
+    fun duration(minutes: Double) = "${minutes.toInt()}m ${((minutes % 1) * 60).toInt()}s"
 }

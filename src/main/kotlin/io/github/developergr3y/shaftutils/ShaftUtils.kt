@@ -10,7 +10,9 @@ import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.developergr3y.shaftutils.hud.RouteRender
 import io.github.developergr3y.shaftutils.routes.RouteKeys
 import io.github.developergr3y.shaftutils.profit.ShaftProfit
-import io.github.developergr3y.shaftutils.hud.StatusHud
+import io.github.developergr3y.shaftutils.hud.Panels
+import io.github.developergr3y.shaftutils.hud.CorpseHelper
+import io.github.developergr3y.shaftutils.hud.ProfitPanel
 import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -78,7 +80,8 @@ object ShaftUtils : ClientModInitializer {
 
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("route"), RouteRender::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("waypoints"), Waypoints::render)
-        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("status"), StatusHud::render)
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("panels"), Panels::render)
+        Panels.register()
 
         registerCommands()
     }
@@ -224,7 +227,8 @@ object ShaftUtils : ClientModInitializer {
     }
 
     fun resetHud() {
-        config.corpses.statusPosition = HudPosition()
+        CorpseHelper.position = CorpseHelper.defaultPosition()
+        ProfitPanel.position = ProfitPanel.defaultPosition()
         saveConfig()
     }
 

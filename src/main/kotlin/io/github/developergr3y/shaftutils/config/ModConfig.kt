@@ -27,7 +27,7 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
-    @Category(name = "GUI", desc = "Move and resize the status panel (§e/shaftutils gui§7).")
+    @Category(name = "GUI", desc = "Move and resize the panels (§e/shaftutils gui§7).")
     var gui = GuiConfig()
 
     @Expose
@@ -54,13 +54,13 @@ class ModConfig : Config() {
 class GuiConfig {
     @Transient
     @JvmField
-    @ConfigOption(name = "Edit GUI Locations", desc = "Drag the status panel to move it, scroll to resize. Also: §e/shaftutils gui")
+    @ConfigOption(name = "Edit GUI Locations", desc = "Drag the panels to move them, scroll to resize. Also: §e/shaftutils gui")
     @ConfigEditorButton(buttonText = "Edit")
     val edit = Runnable { ShaftUtils.openHudEditor() }
 
     @Transient
     @JvmField
-    @ConfigOption(name = "Reset GUI Locations", desc = "Put the status panel back to its default position and size.")
+    @ConfigOption(name = "Reset GUI Locations", desc = "Put the panels back to their default positions and sizes.")
     @ConfigEditorButton(buttonText = "Reset")
     val reset = Runnable { ShaftUtils.resetHud() }
 }
@@ -110,12 +110,18 @@ class CorpseConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Status Panel", desc = "Show the shaft, its corpses, spots left and the Organ Donor ding.")
+    @ConfigOption(name = "Corpse Helper", desc = "Panel listing the shaft's corpses, whether they're looted, and the Organ Donor.")
     @ConfigEditorBoolean
     var showStatus = true
 
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Hide When All Looted", desc = "Hide the Corpse Helper once every corpse in the shaft is looted.")
+    @ConfigEditorBoolean
+    var hideWhenLooted = true
+
     // Not shown as an option; set in GUI > Edit GUI Locations.
-    @Expose @JvmField var statusPosition = HudPosition()
+    @Expose @JvmField var statusPosition = HudPosition(x = 5, y = 60)
 }
 
 class RoutesConfig {
@@ -207,13 +213,25 @@ class ProfitConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Live Profit", desc = "Show this shaft's profit so far in the status panel.")
+    @ConfigOption(name = "Profit Panel", desc = "Panel with this shaft's profit so far: total, top items, corpses.")
     @ConfigEditorBoolean
-    var showLive = true
+    var showPanel = true
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Item Prices", desc = "Value items at the bazaar sell offer or instant sell price.")
+    @ConfigOption(name = "Items Shown", desc = "How many of the most valuable mined items the panel lists.")
+    @ConfigEditorSlider(minValue = 0f, maxValue = 10f, minStep = 1f)
+    var itemsShown = 5
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Keep After Leaving", desc = "Minutes to keep showing the last shaft's profit after you leave.")
+    @ConfigEditorSlider(minValue = 0f, maxValue = 30f, minStep = 1f)
+    var keepMinutes = 5
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Item Prices", desc = "Insta-buy or insta-sell bazaar prices. Also: click it on the panel.")
     @ConfigEditorDropdown
     var priceType = PriceType.SELL_OFFER
 
@@ -222,6 +240,9 @@ class ProfitConfig {
     @ConfigOption(name = "Key Prices", desc = "Cost keys at the bazaar instant buy or buy order price.")
     @ConfigEditorDropdown
     var keyPriceType = KeyPriceType.INSTANT_BUY
+
+    // Not shown as an option; set in GUI > Edit GUI Locations.
+    @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 150)
 }
 
 class DebugConfig {
