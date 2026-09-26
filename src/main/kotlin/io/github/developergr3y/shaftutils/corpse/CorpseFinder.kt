@@ -4,6 +4,7 @@ import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.debug.Probe
 import io.github.developergr3y.shaftutils.shaft.CorpseType
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
+import io.github.developergr3y.shaftutils.util.Projection
 import io.github.developergr3y.shaftutils.util.stripFormatting
 import net.fabricmc.fabric.api.event.player.UseEntityCallback
 import net.minecraft.client.Minecraft
@@ -43,17 +44,29 @@ object CorpseFinder {
 
     private const val CHECK_EVERY_TICKS = 5
     private const val SPOT_RANGE = 40.0
-    /** Checks in a row (at 4 a second) a spot must be in view before it counts as looked at. */
-    private const val VISIBLE_CHECKS_NEEDED = 3
+    /** Checks in a row (at 4 a second) a spot must be on screen and in sight before it counts as looked at. */
+    private const val VISIBLE_CHECKS_NEEDED = 2
     /** Standing this close counts as having checked a spot / seen a corpse (buried ones included). */
     private const val CLOSE_ENOUGH = 4.0
     /** A corpse this close to a spot belongs to it. */
     private const val CORPSE_AT_SPOT = 3.0
+    /** When the Organ Donor is silent, no unlooted corpse is within 20 blocks; clear spots comfortably inside that. */
+    private const val SILENT_CLEAR_RANGE = 17.0
+    /** A spot whose distances match the ding readings this well (blocks, RMS) is the one being dinged for. */
+    private const val SPOT_FIT = 1.8
+    private const val POSITION_LOG_MS = 500L
 
     var spots: List<Spot> = emptyList()
         private set
     val corpses = linkedMapOf<UUID, Corpse>()
     var allFound = false
+        private set
+
+    /** The spawn spot the Organ Donor readings point to, if one fits. */
+    var likelySpot: Spot? = null
+        private set
+    /** Where the readings alone put the corpse, when no known spot fits. */
+    var estimate: Vec3? = null
         private set
 
     private var session = -1
@@ -65,6 +78,7 @@ object CorpseFinder {
                 corpses[entity.uuid]?.let {
                     if (!it.looted) {
                         it.looted = true
+                        OrganDonor.clearTarget()
                         Probe.log("corpse_interact", "type" to it.type.label, "pos" to vec(it.pos), "code" to Mineshaft.code)
                     }
                 }
@@ -87,7 +101,50 @@ object CorpseFinder {
 
         scanCorpses(level, eye)
         checkSpots(level, eye)
+        if (ShaftUtils.config.corpses.useOrganDonor) {
+            clearOnSilence(player.position())
+            locate()
+        } else {
+            likelySpot = null
+            estimate = null
+        }
         checkAllFound()
+        logPosition(player.position())
+    }
+
+    /** Silence (while the talisman has been heard this shaft) means no unlooted corpse within 20 blocks. */
+    private fun clearOnSilence(feet: Vec3) {
+        if (!OrganDonor.silent) return
+        for (spot in spots) {
+            if (spot.state == SpotState.TO_CHECK && spot.centre.distanceTo(feet) <= SILENT_CLEAR_RANGE) {
+                spot.state = SpotState.CLEARED
+                Probe.log("spot_checked", "code" to Mineshaft.code, "pos" to listOf(spot.pos.x, spot.pos.y, spot.pos.z), "result" to "CLEARED", "reason" to "silence")
+            }
+        }
+    }
+
+    /** Which spot the dings point to, or failing that an estimate from the readings alone. */
+    private fun locate() {
+        if (!OrganDonor.dinging || OrganDonor.samples.size < 3) {
+            likelySpot = null
+            estimate = null
+            return
+        }
+        likelySpot = spots.filter { it.state == SpotState.TO_CHECK }
+            .map { it to OrganDonor.fit(it.centre) }
+            .filter { it.second <= SPOT_FIT }
+            .minByOrNull { it.second }?.first
+        estimate = if (likelySpot == null) OrganDonor.estimate() else null
+    }
+
+    private var lastPositionLog = 0L
+
+    /** Probe: where you are twice a second, so dings and silences can be matched to positions afterwards. */
+    private fun logPosition(feet: Vec3) {
+        val now = System.currentTimeMillis()
+        if (!Probe.enabled || now - lastPositionLog < POSITION_LOG_MS) return
+        lastPositionLog = now
+        Probe.log("pos", "p" to vec(feet), "dinging" to OrganDonor.dinging, "code" to Mineshaft.code)
     }
 
     private fun startShaft() {
@@ -107,6 +164,8 @@ object CorpseFinder {
         spots = emptyList()
         corpses.clear()
         allFound = false
+        likelySpot = null
+        estimate = null
     }
 
     private fun scanCorpses(level: ClientLevel, eye: Vec3) {
@@ -150,7 +209,9 @@ object CorpseFinder {
                 spot.visibleChecks = 0
                 continue
             }
-            val inView = distance <= CLOSE_ENOUGH || Sight.canSee(level, eye, spot.centre)
+            // Looked at: on screen, and a clear line to it (or to its edges/top).
+            val inView = distance <= CLOSE_ENOUGH ||
+                (Projection.onScreen(spot.centre) && Sight.canSeeAny(level, eye, Sight.spotSamples(spot.centre)))
             spot.visibleChecks = if (inView) spot.visibleChecks + 1 else 0
             if (distance > CLOSE_ENOUGH && spot.visibleChecks < VISIBLE_CHECKS_NEEDED) continue
 

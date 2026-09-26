@@ -63,6 +63,18 @@ class CorpseConfig {
 
     @Expose
     @JvmField
+    @ConfigOption(name = "Use Organ Donor", desc = "Use the talisman's ding: clear spots when silent, point to the corpse.")
+    @ConfigEditorBoolean
+    var useOrganDonor = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Show Estimate", desc = "Waypoint where the dings put the corpse when no known spot fits.")
+    @ConfigEditorBoolean
+    var showEstimate = true
+
+    @Expose
+    @JvmField
     @ConfigOption(name = "Status Panel", desc = "Show the shaft, its corpses, spots left and the Organ Donor ding.")
     @ConfigEditorBoolean
     var showStatus = true

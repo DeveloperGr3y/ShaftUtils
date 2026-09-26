@@ -6,13 +6,23 @@ import net.minecraft.world.phys.Vec3
 
 /**
  * "Could the player see this point?" Steps along the line from the eye and stops at the first block you can't see
- * through. See-through blocks (ice, glass, leaves, plants) don't block; the block the target is in doesn't count,
- * so a corpse half buried in ice or rock is visible once you can see the spot it's in.
+ * through. See-through blocks (ice, glass, leaves, plants) don't block, and blocks right around the target don't
+ * count, so a corpse half buried in ice or rock is visible once you can see the spot it's in.
  */
 object Sight {
     private const val STEP = 0.2
-    /** Blocks within this distance of the target are part of it (the ice/rock it's buried in). */
-    private const val TARGET_RADIUS = 0.9
+    /** Blocks within this distance of the target are part of it (the ice/rock a corpse lies in). */
+    private const val TARGET_RADIUS = 1.3
+
+    /** Points around a spawn spot: its centre, just above it, and around its edges, so one blocked line isn't enough to miss it. */
+    fun spotSamples(centre: Vec3): List<Vec3> = listOf(
+        centre,
+        centre.add(0.0, 0.9, 0.0),
+        centre.add(0.45, 0.4, 0.0), centre.add(-0.45, 0.4, 0.0),
+        centre.add(0.0, 0.4, 0.45), centre.add(0.0, 0.4, -0.45),
+    )
+
+    fun canSeeAny(level: Level, eye: Vec3, targets: List<Vec3>) = targets.any { canSee(level, eye, it) }
 
     fun canSee(level: Level, eye: Vec3, target: Vec3): Boolean {
         val direction = target.subtract(eye)
