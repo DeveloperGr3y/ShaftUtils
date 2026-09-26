@@ -10,7 +10,7 @@ import java.io.File
 /**
  * Where corpses can spawn, per shaft type and variant: {"TOPA": {"ONE": ["-131,26,-192", ...]}}.
  *
- *  - Bundled: assets/shaftutils/corpse_spawns.json (seeded from meowdding's list; personal use only).
+ *  - Bundled: assets/shaftutils/corpse_spawns.json, only in personal builds (`-Ppersonal`); public builds have none.
  *  - Learned: config/shaftutils/learned_spawns.json, spots recorded in debug mode that the bundled list is missing.
  *
  * `/shaftutils export` writes both merged into one file in the same format, ready to replace the bundled one.

@@ -12,6 +12,11 @@ version = "${property("mod_version")}+mc$mcVersion"
 group = "io.github.developergr3y"
 base.archivesName.set("ShaftUtils")
 
+// `./gradlew build -Ppersonal` also bundles personal/ (the corpse spawn data we can't redistribute) and names the
+// jar ...-personal.jar. Normal and CI builds leave it out; personal/ is git-ignored.
+val personal = project.hasProperty("personal")
+if (personal) sourceSets.main { resources.srcDir(rootProject.file("personal")) }
+
 repositories {
     maven("https://maven.notenoughupdates.org/releases") {
         content { includeGroupAndSubgroups("org.notenoughupdates") }
@@ -69,7 +74,7 @@ tasks.processResources {
 
 tasks.shadowJar {
     configurations = listOf(shadowImpl)
-    archiveClassifier.set("")
+    archiveClassifier.set(if (personal) "personal" else "")
     destinationDirectory.set(rootProject.layout.buildDirectory.dir("libs"))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     exclude("META-INF/versions/**", "META-INF/*.kotlin_module", "moulconfig.accesswidener")

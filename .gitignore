@@ -7,3 +7,6 @@ out/
 .idea/
 *.iml
 .kotlin/
+
+# Personal-only data (not ours to redistribute); bundled only by ./gradlew build -Ppersonal
+personal/

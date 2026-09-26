@@ -1,15 +1,27 @@
+<div align="center">
+
+<img src="docs/images/icon.png" alt="ShaftUtils icon" width="96">
+
 # ShaftUtils
 
 Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and follow mining routes.
-Fabric, Minecraft 26.1.x and 26.2.
+
+[![Latest release](https://img.shields.io/github/v/release/DeveloperGr3y/ShaftUtils?label=release)](https://github.com/DeveloperGr3y/ShaftUtils/releases/latest)
+[![Minecraft](https://img.shields.io/badge/minecraft-26.1.x%20%7C%2026.2-green)](#installing)
+[![Licence: CC0](https://img.shields.io/badge/licence-CC0-lightgrey)](LICENSE)
+
+</div>
 
 ## Installing
 1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.5+ and [Fabric API](https://modrinth.com/mod/fabric-api).
-2. Drop the jar for your Minecraft version (`+mc26.1` or `+mc26.2`) in your `mods` folder. Needs Java 25.
+2. Download the jar for your Minecraft version (`+mc26.1` or `+mc26.2`) from
+   [Releases](https://github.com/DeveloperGr3y/ShaftUtils/releases) and drop it in your `mods` folder. Needs Java 25.
 3. In game, `/shaftutils` opens the settings and `/shaftutils gui` moves the status panel.
 
 ## Corpse finder
-- Entering a shaft puts a waypoint on every spot a corpse can spawn in that shaft type.
+- Entering a shaft puts a waypoint on every spot a corpse can spawn in that shaft type. Spots are learned as you play:
+  every corpse you see is saved as a spot for that shaft type (Debug > Record New Spots), so the more shafts you run,
+  the more spots you get.
 - A spot clears once you've looked at it (on screen, with a clear line to it). If a corpse is there it becomes a
   corpse waypoint with its type, distance and whether you have the key it needs.
 - Corpses are only marked once you can see them. Nothing is shown through walls.
@@ -54,15 +66,23 @@ It only reads chat, the tab list, the scoreboard, sounds and what's on screen. I
 and it doesn't show anything through walls.
 
 ## Credits
-- Built-in routes by the **Mining Cult** community.
-- Starting corpse spawn spots from meowdding's data (used by SkyOcean). **Pending their permission to redistribute;
-  remove `assets/shaftutils/corpse_spawns.json` before publishing if they say no.**
+- Built-in routes by the **Mining Cult** community, used with their permission (not covered by the CC0 licence).
+- Licence: CC0 for ShaftUtils' own code. Third-party parts are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Debug / data gathering
-Off by default (Debug tab):
-- **Probe Logging** writes dings, positions, corpse sightings and shaft info to `config/shaftutils/probe/<date>.jsonl`.
-- **Record New Spots** saves corpses seen away from a known spot to `config/shaftutils/learned_spawns.json`.
+In the Debug tab:
+- **Probe Logging** (off by default) writes dings, positions, corpse sightings and shaft info to `config/shaftutils/probe/<date>.jsonl`.
+- **Record New Spots** (on by default) saves corpses seen away from a known spot to `config/shaftutils/learned_spawns.json`.
 - `/shaftutils export` merges known + learned spots into `config/shaftutils/corpse_spawns.export.json`.
 
 ## Building
 `./gradlew build` (JDK 25). Jars end up in `build/libs/`.
+
+`./gradlew build -Ppersonal` also bundles anything in a local, git-ignored `personal/` folder (e.g. a private
+`assets/shaftutils/corpse_spawns.json`) and names the jars `...-personal.jar`.
+
+## Contributing
+Open a PR against `main` with a [Conventional Commit](https://www.conventionalcommits.org/) title, e.g.
+`feat: add a route for TOPA_2` or `fix: corpse spot cleared too early`. `feat` bumps the minor version, `fix` the
+patch. PRs are squash-merged, and [release-please](https://github.com/googleapis/release-please) turns them into a
+release PR with the changelog; merging that publishes the release with the jars attached.

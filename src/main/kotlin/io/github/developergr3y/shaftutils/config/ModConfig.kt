@@ -183,7 +183,7 @@ class DebugConfig {
     @JvmField
     @ConfigOption(name = "Record New Spots", desc = "Save corpses seen away from known spots as new spawn spots.")
     @ConfigEditorBoolean
-    var recordSpots = false
+    var recordSpots = true
 
     @Expose
     @JvmField
