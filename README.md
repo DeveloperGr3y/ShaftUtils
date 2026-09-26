@@ -6,6 +6,7 @@
 
 Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and follow mining routes.
 
+[![Downloads](https://img.shields.io/github/downloads/DeveloperGr3y/ShaftUtils/total?logo=github&label=downloads)](https://github.com/DeveloperGr3y/ShaftUtils/releases)
 [![Latest release](https://img.shields.io/github/v/release/DeveloperGr3y/ShaftUtils?label=release)](https://github.com/DeveloperGr3y/ShaftUtils/releases/latest)
 [![Minecraft](https://img.shields.io/badge/minecraft-26.1.x%20%7C%2026.2-green)](#installing)
 [![Licence: CC0](https://img.shields.io/badge/licence-CC0-lightgrey)](LICENSE)
