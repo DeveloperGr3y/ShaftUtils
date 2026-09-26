@@ -19,9 +19,9 @@ Glacite Mineshaft helpers for Hypixel SkyBlock: find Frozen Corpses faster and f
 3. In game, `/shaftutils` opens the settings and `/shaftutils gui` moves the status panel.
 
 ## Corpse finder
-- Entering a shaft puts a waypoint on every spot a corpse can spawn in that shaft type. Spots are learned as you play:
-  every corpse you see is saved as a spot for that shaft type (Debug > Record New Spots), so the more shafts you run,
-  the more spots you get.
+- Entering a shaft puts a waypoint on every known spot a corpse can spawn in that shaft type. It ships with the spots
+  we've seen corpses at ourselves (26 so far, across 9 shaft types, more each release), and learns more as you play:
+  every corpse you see that isn't known yet is saved as a spot for that shaft type (Debug > Record New Spots).
 - A spot clears once you've looked at it (on screen, with a clear line to it). If a corpse is there it becomes a
   corpse waypoint with its type, distance and whether you have the key it needs.
 - Corpses are only marked once you can see them. Nothing is shown through walls.
@@ -78,8 +78,11 @@ In the Debug tab:
 ## Building
 `./gradlew build` (JDK 25). Jars end up in `build/libs/`.
 
-`./gradlew build -Ppersonal` also bundles anything in a local, git-ignored `personal/` folder (e.g. a private
-`assets/shaftutils/corpse_spawns.json`) and names the jars `...-personal.jar`.
+`./gradlew build -Ppersonal` also bundles anything in a local, git-ignored `personal/` folder (e.g. extra spawn data in
+`assets/shaftutils/corpse_spawns_personal.json`) and names the jars `...-personal.jar`.
+
+To add spots for a release: run `/shaftutils export` and copy `config/shaftutils/corpse_spawns.export.json` over
+`src/main/resources/assets/shaftutils/corpse_spawns.json` (it only includes our own data, never the personal file).
 
 ## Contributing
 Open a PR against `main` with a [Conventional Commit](https://www.conventionalcommits.org/) title, e.g.
