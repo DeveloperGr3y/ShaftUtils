@@ -14,7 +14,6 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.decoration.ArmorStand
-import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import java.util.UUID
 
@@ -34,6 +33,8 @@ object CorpseFinder {
 
     class Spot(val pos: BlockPos) {
         var state = SpotState.TO_CHECK
+        /** Why it was cleared ("sight", "silence", "all found"), so a wrong call can be undone. */
+        var clearedBy: String? = null
         var visibleChecks = 0
         val centre: Vec3 = Vec3.atBottomCenterOf(pos).add(0.0, 0.5, 0.0)
     }
@@ -52,6 +53,12 @@ object CorpseFinder {
     private const val CORPSE_AT_SPOT = 3.0
     /** When the Organ Donor is silent, no unlooted corpse is within 20 blocks; clear spots comfortably inside that. */
     private const val SILENT_CLEAR_RANGE = 17.0
+    /** Silence has to last longer than the slowest ding gap seen (~1.15s) before it means anything. */
+    private const val QUIET_WINDOW_MS = 1_600L
+    /** Right after looting, the ding may pause or switch corpse; don't read anything into silence then. */
+    private const val AFTER_LOOT_MS = 3_000L
+    /** A cleared spot is reopened if the dings fit it at least this well (and there are enough of them). */
+    private const val REOPEN_FIT = 1.2
     /** A spot whose distances match the ding readings this well (blocks, RMS) is the one being dinged for. */
     private const val SPOT_FIT = 1.8
     private const val POSITION_LOG_MS = 500L
@@ -71,6 +78,9 @@ object CorpseFinder {
 
     private var session = -1
     private var ticks = 0
+    private var lastLootAt = 0L
+    /** Where you've been recently (time, feet), to know where the talisman was actually silent. */
+    private val recent = ArrayDeque<Pair<Long, Vec3>>()
 
     fun register() {
         UseEntityCallback.EVENT.register { player, _, _, entity, _ ->
@@ -78,6 +88,7 @@ object CorpseFinder {
                 corpses[entity.uuid]?.let {
                     if (!it.looted) {
                         it.looted = true
+                        lastLootAt = System.currentTimeMillis()
                         OrganDonor.clearTarget()
                         Probe.log("corpse_interact", "type" to it.type.label, "pos" to vec(it.pos), "code" to Mineshaft.code)
                     }
@@ -99,10 +110,14 @@ object CorpseFinder {
         val level = client.level ?: return
         val eye = player.getEyePosition(1f)
 
+        val now = System.currentTimeMillis()
+        recent.addLast(now to player.position())
+        while (recent.isNotEmpty() && now - recent.first().first > 5_000) recent.removeFirst()
+
         scanCorpses(level, eye)
         checkSpots(level, eye)
         if (ShaftUtils.config.corpses.useOrganDonor) {
-            clearOnSilence(player.position())
+            clearOnSilence(now)
             locate()
         } else {
             likelySpot = null
@@ -112,15 +127,29 @@ object CorpseFinder {
         logPosition(player.position())
     }
 
-    /** Silence (while the talisman has been heard this shaft) means no unlooted corpse within 20 blocks. */
-    private fun clearOnSilence(feet: Vec3) {
-        if (!OrganDonor.silent) return
+    /**
+     * Silence (once the talisman has been heard this shaft) means no unlooted corpse within 20 blocks, but only where
+     * you actually were while it was silent. A spot is cleared only if you stayed within range of it for a whole quiet
+     * window; teleporting next to a spot and clearing it before the next ding is exactly what we must not do.
+     */
+    private fun clearOnSilence(now: Long) {
+        // After every corpse is found, other mods (and players) often mute the ding, so silence means nothing then.
+        if (!OrganDonor.heardThisShaft || allFound) return
+        val quietSince = maxOf(OrganDonor.lastDingAt, lastLootAt + AFTER_LOOT_MS)
+        if (now - quietSince < QUIET_WINDOW_MS) return
+        val windowStart = now - QUIET_WINDOW_MS
+        val window = recent.filter { it.first >= windowStart }
+        if (window.isEmpty() || recent.first().first > windowStart) return // not enough history yet
         for (spot in spots) {
-            if (spot.state == SpotState.TO_CHECK && spot.centre.distanceTo(feet) <= SILENT_CLEAR_RANGE) {
-                spot.state = SpotState.CLEARED
-                Probe.log("spot_checked", "code" to Mineshaft.code, "pos" to listOf(spot.pos.x, spot.pos.y, spot.pos.z), "result" to "CLEARED", "reason" to "silence")
-            }
+            if (spot.state != SpotState.TO_CHECK) continue
+            if (window.all { it.second.distanceTo(spot.centre) <= SILENT_CLEAR_RANGE }) clearSpot(spot, "silence")
         }
+    }
+
+    private fun clearSpot(spot: Spot, reason: String) {
+        spot.state = SpotState.CLEARED
+        spot.clearedBy = reason
+        Probe.log("spot_checked", "code" to Mineshaft.code, "pos" to listOf(spot.pos.x, spot.pos.y, spot.pos.z), "result" to "CLEARED", "reason" to reason)
     }
 
     /** Which spot the dings point to, or failing that an estimate from the readings alone. */
@@ -130,10 +159,19 @@ object CorpseFinder {
             estimate = null
             return
         }
-        likelySpot = spots.filter { it.state == SpotState.TO_CHECK }
+        val enough = OrganDonor.samples.size >= 4 && OrganDonor.spread() >= 3.0
+        val best = spots.filter { it.state == SpotState.TO_CHECK || (enough && it.state == SpotState.CLEARED && it.clearedBy != "all found") }
             .map { it to OrganDonor.fit(it.centre) }
-            .filter { it.second <= SPOT_FIT }
+            .filter { (spot, fit) -> fit <= if (spot.state == SpotState.TO_CHECK) SPOT_FIT else REOPEN_FIT }
             .minByOrNull { it.second }?.first
+        if (best != null && best.state == SpotState.CLEARED) {
+            // The dings say a corpse is here after all (we cleared it by mistake): bring it back.
+            Probe.log("spot_reopened", "code" to Mineshaft.code, "pos" to listOf(best.pos.x, best.pos.y, best.pos.z), "wasClearedBy" to best.clearedBy)
+            best.state = SpotState.TO_CHECK
+            best.clearedBy = null
+            best.visibleChecks = 0
+        }
+        likelySpot = best
         estimate = if (likelySpot == null) OrganDonor.estimate() else null
     }
 
@@ -164,6 +202,8 @@ object CorpseFinder {
         spots = emptyList()
         corpses.clear()
         allFound = false
+        recent.clear()
+        lastLootAt = 0L
         likelySpot = null
         estimate = null
     }
@@ -177,8 +217,7 @@ object CorpseFinder {
             val type = CorpseType.fromHelmetId(id)
             val pos = entity.position()
             val distance = eye.distanceTo(pos)
-            val seen = distance <= CLOSE_ENOUGH || Sight.canSee(level, eye, pos.add(0.0, 0.3, 0.0)) ||
-                Sight.canSee(level, eye, pos.add(0.0, 1.4, 0.0))
+            val seen = distance <= CLOSE_ENOUGH || Sight.canSeeAny(level, eye, Sight.spotSamples(pos.add(0.0, 0.3, 0.0)))
             if (!seen) continue
 
             if (type == null) {
@@ -186,22 +225,38 @@ object CorpseFinder {
                 Probe.log("armor_stand_seen", "helmetId" to id, "helmetName" to helmet.hoverName.string.stripFormatting(), "pos" to vec(pos))
                 continue
             }
-            corpses[entity.uuid] = Corpse(entity.uuid, type, pos)
-            Probe.log("corpse_seen", "type" to type.label, "helmetId" to id, "pos" to vec(pos), "distance" to distance, "code" to Mineshaft.code)
-            if (ShaftUtils.config.corpses.announce) ShaftUtils.chat("Found a ${type.formatted}§r corpse §7(${distance.toInt()}m)")
-
-            val shaftType = Mineshaft.type
-            val variant = Mineshaft.variant
-            if (ShaftUtils.config.debug.recordSpots && shaftType != null && variant != null &&
-                SpawnData.learn(shaftType, variant, BlockPos.containing(pos))
-            ) {
-                ShaftUtils.chat("§aRecorded a new corpse spot for §f${Mineshaft.code}§a (${SpawnData.learnedCount()} learned)")
-                Probe.log("spot_learned", "code" to Mineshaft.code, "pos" to vec(pos))
-            }
+            addCorpse(entity, type, id, distance, "sight")
         }
     }
 
-    private fun checkSpots(level: Level, eye: Vec3) {
+    /** A corpse-helmeted armour stand within [radius] of [centre], if there is one. */
+    private fun corpseStandNear(level: ClientLevel, centre: Vec3, radius: Double): Pair<ArmorStand, CorpseType>? {
+        for (entity in level.entitiesForRendering()) {
+            if (entity !is ArmorStand || entity.position().distanceTo(centre) > radius) continue
+            val id = entity.getItemBySlot(EquipmentSlot.HEAD).get(DataComponents.CUSTOM_DATA)?.copyTag()?.getStringOr("id", "").orEmpty()
+            CorpseType.fromHelmetId(id)?.let { return entity to it }
+        }
+        return null
+    }
+
+    private fun addCorpse(entity: ArmorStand, type: CorpseType, id: String, distance: Double, how: String) {
+        if (entity.uuid in corpses) return
+        val pos = entity.position()
+        corpses[entity.uuid] = Corpse(entity.uuid, type, pos)
+        Probe.log("corpse_seen", "type" to type.label, "helmetId" to id, "pos" to vec(pos), "distance" to distance, "how" to how, "code" to Mineshaft.code)
+        if (ShaftUtils.config.corpses.announce) ShaftUtils.chat("Found a ${type.formatted}§r corpse §7(${distance.toInt()}m)")
+
+        val shaftType = Mineshaft.type
+        val variant = Mineshaft.variant
+        if (ShaftUtils.config.debug.recordSpots && shaftType != null && variant != null &&
+            SpawnData.learn(shaftType, variant, BlockPos.containing(pos))
+        ) {
+            ShaftUtils.chat("§aRecorded a new corpse spot for §f${Mineshaft.code}§a (${SpawnData.learnedCount()} learned)")
+            Probe.log("spot_learned", "code" to Mineshaft.code, "pos" to vec(pos))
+        }
+    }
+
+    private fun checkSpots(level: ClientLevel, eye: Vec3) {
         for (spot in spots) {
             if (spot.state != SpotState.TO_CHECK) continue
             val distance = eye.distanceTo(spot.centre)
@@ -215,9 +270,16 @@ object CorpseFinder {
             spot.visibleChecks = if (inView) spot.visibleChecks + 1 else 0
             if (distance > CLOSE_ENOUGH && spot.visibleChecks < VISIBLE_CHECKS_NEEDED) continue
 
-            val corpse = corpses.values.any { it.pos.distanceTo(spot.centre) <= CORPSE_AT_SPOT }
-            spot.state = if (corpse) SpotState.CORPSE else SpotState.CLEARED
-            Probe.log("spot_checked", "code" to Mineshaft.code, "pos" to listOf(spot.pos.x, spot.pos.y, spot.pos.z), "result" to spot.state.name, "distance" to distance)
+            // You've looked at the spot, so a corpse lying in it has been seen too (even if it's buried).
+            corpseStandNear(level, spot.centre, CORPSE_AT_SPOT)?.let { (stand, type) ->
+                addCorpse(stand, type, type.helmetIds.first(), distance, "spot")
+            }
+            if (corpses.values.any { it.pos.distanceTo(spot.centre) <= CORPSE_AT_SPOT }) {
+                spot.state = SpotState.CORPSE
+                Probe.log("spot_checked", "code" to Mineshaft.code, "pos" to listOf(spot.pos.x, spot.pos.y, spot.pos.z), "result" to "CORPSE", "distance" to distance)
+            } else {
+                clearSpot(spot, "sight")
+            }
         }
         // A corpse found anywhere near a spot settles that spot too.
         for (spot in spots) {
@@ -231,7 +293,10 @@ object CorpseFinder {
         val expected = Mineshaft.corpses.size
         if (allFound || expected == 0 || corpses.size < expected) return
         allFound = true
-        spots.filter { it.state == SpotState.TO_CHECK }.forEach { it.state = SpotState.CLEARED }
+        spots.filter { it.state == SpotState.TO_CHECK }.forEach {
+            it.state = SpotState.CLEARED
+            it.clearedBy = "all found"
+        }
         Probe.log("all_found", "code" to Mineshaft.code, "count" to expected)
         ShaftUtils.chat("§aAll $expected corpses found!")
     }
