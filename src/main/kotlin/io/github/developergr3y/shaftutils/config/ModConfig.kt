@@ -486,6 +486,9 @@ class PerfectConfig {
     @Expose @JvmField var synced = mutableSetOf<String>()
     @Expose @JvmField var crystals = mutableSetOf<String>()
     @Expose @JvmField var crystalsKnown = false
+    /** Perfects being forged, per gem, as last seen in the Forge (to spot a new craft using a crystal). */
+    @Expose @JvmField var forging = mutableMapOf<String, Int>()
+    @Expose @JvmField var forgingKnown = false
     @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 250)
 }
 
