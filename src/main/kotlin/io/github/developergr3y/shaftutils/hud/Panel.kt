@@ -2,8 +2,10 @@ package io.github.developergr3y.shaftutils.hud
 
 import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
+import io.github.developergr3y.shaftutils.util.Compat
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 
 /** Where a panel sits (GUI pixels) and how big it is. Set in /shaftutils gui. */
@@ -151,6 +153,9 @@ abstract class Panel(val label: String) {
     }
 
     companion object {
+        /** Your inventory (or another container) is open, so panel buttons can be clicked. Buttons only show then. */
+        val inInventory get() = Compat.screen is AbstractContainerScreen<*>
+
         /**
          * Width of a "§"-formatted string as drawn. The font's own measurement leaves out bold (each bold character is
          * drawn 1px wider), which made bold titles overlap what came after them.
