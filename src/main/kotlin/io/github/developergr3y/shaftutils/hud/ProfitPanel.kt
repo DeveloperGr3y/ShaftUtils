@@ -11,7 +11,8 @@ import net.minecraft.client.Minecraft
 /**
  * What mining is making, laid out like a table:
  *
- *   Shaft Profit · Jasper          [Insta-buy] [Shaft]
+ *   [Insta-buy] [Shaft]
+ *   Shaft Profit · Jasper
  *   Flawed Jasper        ×12,007      8.0m
  *   Rough Jasper         ×59,882      421k
  *   Ench Glacite             ×48      86k
@@ -23,7 +24,7 @@ import net.minecraft.client.Minecraft
  *   Time                          11m 28s
  *
  * [Shaft] shows the shaft you're in (or the last one for a few minutes after leaving); [Session] adds up every shaft
- * since you started the game. Both toggles are clickable with your inventory open.
+ * since you started the game. The toggles only show (on a line above the title) while your inventory is open.
  */
 object ProfitPanel : Panel("Shaft Profit") {
     private val config get() = ShaftUtils.config.profit
@@ -108,16 +109,21 @@ object ProfitPanel : Panel("Shaft Profit") {
     }
 
     /** "Shaft Profit · Jasper   [Insta-buy] [Shaft]" with the two switches as buttons. */
-    private fun header(what: String) = PanelLine(
-        listOf(
-            Cell("§6§lShaft Profit $what"),
-            Cell("§8[§f${config.priceType}§8]") { switchPrices() },
-            Cell("§8[§f${if (config.sessionView) "Session" else "Shaft"}§8]") { switchView() },
-        ),
-    )
+    /** The title, with the price / view switches on a line above it while your inventory is open. */
+    private fun header(what: String): List<PanelLine> {
+        val title = PanelLine("§6§lShaft Profit $what")
+        if (!inInventory) return listOf(title)
+        val buttons = PanelLine(
+            listOf(
+                Cell("§8[§f${config.priceType}§8]") { switchPrices() },
+                Cell("§8[§f${if (config.sessionView) "Session" else "Shaft"}§8]") { switchView() },
+            ),
+        )
+        return listOf(buttons, title)
+    }
 
     override fun previewLines() = listOf(
-        PanelLine(listOf(Cell("§6§lShaft Profit §7Jasper"), Cell("§8[§fInsta-buy§8]"), Cell("§8[§fShaft§8]"))),
+        PanelLine("§6§lShaft Profit §7Jasper"),
         PanelLine.row("  §aFlawed Jasper", "§7×12,007", "§68.0m"),
         PanelLine.row("  §fRough Jasper", "§7×59,882", "§6421k"),
         PanelLine.row("  §9Ench Glacite", "§7×48", "§687k"),
