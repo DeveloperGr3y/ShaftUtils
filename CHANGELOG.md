@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/DeveloperGr3y/ShaftUtils/compare/v0.1.0...v0.2.0) (2026-09-27)
+
+
+### Features
+
+* add 43 more corpse spawn spots from the Mining Fiesta ([#5](https://github.com/DeveloperGr3y/ShaftUtils/issues/5)) ([9fb648a](https://github.com/DeveloperGr3y/ShaftUtils/commit/9fb648a4304461e4c0b48f9e47131bfc4693f276))
+* add a built-in route for Peridot shafts (PERI_1) ([#8](https://github.com/DeveloperGr3y/ShaftUtils/issues/8)) ([5ed4e39](https://github.com/DeveloperGr3y/ShaftUtils/commit/5ed4e39789e13d30bd35201ef46604ed7dd75e5b))
+* Corpse Helper and Shaft Profit panels, with per-shaft profit ([#6](https://github.com/DeveloperGr3y/ShaftUtils/issues/6)) ([282f24a](https://github.com/DeveloperGr3y/ShaftUtils/commit/282f24a27bd57b2148c6cc921bf95f3a89c9bab3))
+* on-screen title when you enter a shaft ([#9](https://github.com/DeveloperGr3y/ShaftUtils/issues/9)) ([886a061](https://github.com/DeveloperGr3y/ShaftUtils/commit/886a061f987e001dffe06bbb2026a4eb4f61f4b8))
+
+
+### Bug Fixes
+
+* label unchecked spawn spots "? corpse" ([#11](https://github.com/DeveloperGr3y/ShaftUtils/issues/11)) ([5b15026](https://github.com/DeveloperGr3y/ShaftUtils/commit/5b15026cfb760df1ebc7c2359098d24dee0855c0))
+
 ## 0.1.0 (2026-09-26)
 
 
