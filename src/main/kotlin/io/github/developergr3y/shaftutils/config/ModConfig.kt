@@ -311,7 +311,7 @@ class RoutesConfig {
 class FossilConfig {
     @Expose
     @JvmField
-    @ConfigOption(name = "Highlight Fossils", desc = "Tint quartz blocks (fossils) purple in Glacite Mineshafts. Only blocks you can see.")
+    @ConfigOption(name = "Highlight Fossils", desc = "Tint quartz blocks (fossils) purple in Glacite Mineshafts. Not through walls.")
     @ConfigEditorBoolean
     var enabled = true
 
@@ -319,7 +319,7 @@ class FossilConfig {
     @JvmField
     @ConfigOption(name = "Opacity", desc = "How strong the tint is, in percent.")
     @ConfigEditorSlider(minValue = 10f, maxValue = 80f, minStep = 5f)
-    var opacity = 35f
+    var opacity = 80f
 
     @Expose
     @JvmField
