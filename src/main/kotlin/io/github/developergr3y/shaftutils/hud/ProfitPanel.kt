@@ -105,6 +105,17 @@ object ProfitPanel : Panel("Shaft Profit") {
                 tooltip = listOf("§7Not priced (not on the bazaar):") + t.unpriced.map { "§f$it" },
             )
         }
+        if (ShaftProfit.sackDataMissing()) {
+            lines += PanelLine(
+                listOf(Cell("§c⚠ No sack messages")),
+                tooltip = listOf(
+                    "§7Nothing from your sacks has been counted.",
+                    "§7Turn on §fSack Notifications§7 in Hypixel's",
+                    "§e/settings§7 → §fChat Settings§7.",
+                ),
+            )
+            lines += PanelLine("§7Turn on §fSack Notifications §8(/settings)")
+        }
         if (!Prices.loaded) lines += PanelLine("§cBazaar prices still loading…")
         return lines
     }

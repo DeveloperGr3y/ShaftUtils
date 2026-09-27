@@ -14,21 +14,24 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
+import net.minecraft.world.entity.player.Inventory
 import kotlin.math.abs
 
 /**
  * Profit per mineshaft: what you mined, what the corpses gave, minus the keys used to open them.
  *
- * Items come from three places (the usual way SkyBlock profit trackers work):
+ * Only mining items count (see [MiningItems]), by item id, plus rare drops and corpse loot from chat. Items come from:
  *  - "[Sacks] +1,234 items" messages: hovering them lists every item added, e.g. "+1,234 Rough Jade Gemstone (...)".
  *    They arrive every ~30s, and Hypixel drops the unsent batch when you change server, so whatever went into your
  *    sacks in the last few seconds before leaving isn't counted (usually little: you're walking out by then).
  *  - Your inventory: anything new that didn't go to your sacks.
  *  - The corpse loot summary in chat, counted as corpse loot. Those items also turn up in your sacks/inventory later,
  *    so they're set aside and not counted a second time as mining.
+ *  - "RARE DROP! Littlefoot Fluff (+191 Magic Find)" and the like, counted whatever the item is.
  * Moving items out of your sacks ("Moved 64 X from your Sacks to your inventory.") isn't a gain, and neither is
  * crafting: "You Supercrafted Flawed Jade Gemstone x4,490!" sets those aside, since the gems they're made from were
- * already counted when you mined them.
+ * already counted when you mined them. Selling to an NPC ("You sold Hard Stone x64 ...") isn't a loss.
+ * Your inventory is only counted a few seconds after arriving, once the new server has sent it.
  */
 object ShaftProfit {
     class Session(val code: String, val startedAt: Long) {
@@ -43,6 +46,10 @@ object ShaftProfit {
     private const val TAIL_MS = 1_500L
     /** Corpse loot and sack withdrawals are set aside for this long while they turn up in sacks/inventory. */
     private const val SET_ASIDE_MS = 60_000L
+    /** Wait this long after arriving before counting your inventory (the server resends it as you join). */
+    private const val SETTLE_MS = 3_000L
+    /** No sack message this long into a shaft means sack notifications are probably off. */
+    private const val SACK_WARNING_MS = 90_000L
 
     private val sacksHeader = Regex("^\\[Sacks] ")
     private val sackLine = Regex("^\\s*([+-][\\d,]+) (.+?) \\((.+)\\)\\s*$")
@@ -50,6 +57,10 @@ object ShaftProfit {
     /** "PRISTINE! You found ❁ Flawed Jasper Gemstone x4!" */
     private val pristine = Regex("^PRISTINE! You found (.+?)(?: x([\\d,]+))?!$")
     private val supercraft = Regex("^You Supercrafted (.+?)(?: x([\\d,]+))?!$")
+    private val sold = Regex("^You sold (.+?)(?: x([\\d,]+))? for [\\d,.]+ Coins?!$")
+    /** "RARE DROP! Littlefoot Fluff (+191 Magic Find)", "CRAZY RARE DROP! (Shriveled Wasp) (+229% Magic Find)". */
+    private val rareDrop = Regex("^(?:[A-Z]+ )*(?:RARE|PET) DROP! (.+?) \\(\\+[^()]*\\)!?$")
+    private val dropAmount = Regex("^(.+?) x([\\d,]+)$")
     private val lootLine = Regex("^\\s+(.+?)(?: x([\\d,]+))?\\s*$")
 
     var session: Session? = null
@@ -60,15 +71,25 @@ object ShaftProfit {
     /** Every shaft since you started the game (for the panel's Session view). */
     val finished = mutableListOf<Session>()
 
-    /** Hypixel puts icon glyphs (private-use characters) before some names, e.g. gemstones. Strip them. */
+    /**
+     * Hypixel puts icons before some names, e.g. gemstones: private-use glyphs in chat, symbols like "❁" on items.
+     * Strip them, so the same item always has the same name.
+     */
     private val icons = Regex("[\\uE000-\\uF8FF]")
-    fun cleanName(name: String) = name.replace(icons, "").replace(Regex("\\s+"), " ").trim()
+    private val leadingSymbols = Regex("^[^\\p{L}\\p{N}]+")
+    fun cleanName(name: String) = name.replace(icons, "").replace(Regex("\\s+"), " ").trim().replace(leadingSymbols, "")
     private var lastSession = -1
 
     /** Items set aside: name -> (amount, until). Mining gains of these are skipped until they've been used up. */
     private val setAside = mutableMapOf<String, Pair<Long, Long>>()
     /** Inventory-only set-asides (sack withdrawals). */
     private val setAsideInventory = mutableMapOf<String, Pair<Long, Long>>()
+    /** Inventory losses that aren't used up while mining (sold to an NPC). */
+    private val setAsideRemoval = mutableMapOf<String, Pair<Long, Long>>()
+
+    /** When the last "[Sacks]" message arrived, from anywhere. */
+    var lastSackMessage = 0L
+        private set
 
     private var inventoryBaseline: Map<String, Long>? = null
     private var readingLootUntil = 0L
@@ -89,6 +110,7 @@ object ShaftProfit {
             session = Session(Mineshaft.code ?: "?", now)
             setAside.clear()
             setAsideInventory.clear()
+            setAsideRemoval.clear()
             inventoryBaseline = null
             Prices.refreshIfStale()
         } else if (current != null && !Mineshaft.inShaft) {
@@ -101,10 +123,11 @@ object ShaftProfit {
     // --- sources ---
 
     private fun onChat(message: Component) {
-        val s = session ?: return
-        if (!ShaftUtils.config.profit.enabled) return
         val text = message.string.stripFormatting()
         val now = System.currentTimeMillis()
+        if (sacksHeader.containsMatchIn(text)) lastSackMessage = now
+        val s = session ?: return
+        if (!ShaftUtils.config.profit.enabled) return
 
         if (sacksHeader.containsMatchIn(text)) {
             for (hover in hovers(message).distinctBy { it.string }) {
@@ -115,7 +138,10 @@ object ShaftProfit {
                     if (line.contains("Added items", ignoreCase = true)) adding = true
                     val m = sackLine.find(line) ?: continue
                     val amount = m.groupValues[1].replace(",", "").toLong()
-                    if (adding && amount > 0) addMining(s, cleanName(m.groupValues[2]), amount, fromInventory = false)
+                    val name = cleanName(m.groupValues[2])
+                    // The sack list colours each item by rarity (e.g. Glossy Gemstone).
+                    ItemIds.learnColour(name, colourBefore(legacyLine, name))
+                    if (adding && amount > 0) addMining(s, name, amount, fromInventory = false)
                 }
             }
             return
@@ -127,6 +153,22 @@ object ShaftProfit {
             val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
             s.mining.merge(name, amount, Long::plus)
             setAside[name] = ((setAside[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
+            return
+        }
+        rareDrop.find(text)?.let {
+            // Counted whatever it is (it may not be a mining item), and set aside for when it reaches your inventory.
+            val drop = it.groupValues[1].removePrefix("(").removeSuffix(")")
+            val m = dropAmount.matchEntire(drop)
+            val name = cleanName(m?.groupValues?.get(1) ?: drop)
+            val amount = m?.groupValues?.get(2)?.replace(",", "")?.toLongOrNull() ?: 1
+            s.mining.merge(name, amount, Long::plus)
+            setAside[name] = ((setAside[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
+            return
+        }
+        sold.find(text)?.let {
+            val name = cleanName(it.groupValues[1])
+            val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
+            setAsideRemoval[name] = ((setAsideRemoval[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
             return
         }
         supercraft.find(text)?.let {
@@ -194,13 +236,17 @@ object ShaftProfit {
     private fun readInventory(client: Minecraft) {
         val player = client.player ?: return
         // While a menu is open, items move to and from your cursor; count again from scratch afterwards.
-        if (Compat.screen != null) {
+        // Likewise just after arriving, while the new server sends your inventory.
+        val started = session?.startedAt ?: return
+        if (Compat.screen != null || System.currentTimeMillis() - started < SETTLE_MS) {
             inventoryBaseline = null
             return
         }
         val counts = mutableMapOf<String, Long>()
         val inventory = player.inventory
-        for (i in 0 until inventory.containerSize) {
+        // Hotbar and main inventory only: armour isn't loot, and Hypixel resends it (e.g. animated dyes change it
+        // whenever you open your inventory), which would look like new items.
+        for (i in 0 until Inventory.INVENTORY_SIZE) {
             val stack = inventory.getItem(i)
             if (stack.isEmpty) continue
             val name = cleanName(stack.hoverName.string.stripFormatting())
@@ -226,25 +272,43 @@ object ShaftProfit {
     }
 
     private fun addMining(s: Session, name: String, amount: Long, fromInventory: Boolean) {
+        if (!MiningItems.counts(ItemIds.idFor(name))) return
         var left = amount
         val now = System.currentTimeMillis()
         for (ledger in if (fromInventory) listOf(setAsideInventory, setAside) else listOf(setAside)) {
-            val (held, until) = ledger[name] ?: continue
-            if (now > until) {
-                ledger.remove(name)
-                continue
-            }
-            val used = minOf(held, left)
-            left -= used
-            if (held - used > 0) ledger[name] = (held - used) to until else ledger.remove(name)
+            left = take(ledger, name, left, now)
             if (left == 0L) return
         }
         s.mining.merge(name, left, Long::plus)
     }
 
     private fun removeMining(s: Session, name: String, amount: Long) {
-        s.mining.merge(name, -amount, Long::plus)
+        if (!MiningItems.counts(ItemIds.idFor(name))) return
+        val left = take(setAsideRemoval, name, amount, System.currentTimeMillis())
+        if (left == 0L) return
+        s.mining.merge(name, -left, Long::plus)
         if (s.mining[name] == 0L) s.mining.remove(name)
+    }
+
+    /** Use up to [amount] of [name] from a set-aside ledger; returns what's left. */
+    private fun take(ledger: MutableMap<String, Pair<Long, Long>>, name: String, amount: Long, now: Long): Long {
+        val (held, until) = ledger[name] ?: return amount
+        if (now > until) {
+            ledger.remove(name)
+            return amount
+        }
+        val used = minOf(held, amount)
+        if (held - used > 0) ledger[name] = (held - used) to until else ledger.remove(name)
+        return amount - used
+    }
+
+    /**
+     * In a shaft for a while with no "[Sacks]" message since you arrived: Hypixel's sack notifications are probably
+     * off (SkyBlock Settings > Chat Settings > Sack Notifications), and most of what you mine can't be counted.
+     */
+    fun sackDataMissing(): Boolean {
+        val s = session ?: return false
+        return Mineshaft.inShaft && System.currentTimeMillis() - s.startedAt > SACK_WARNING_MS && lastSackMessage < s.startedAt
     }
 
     // --- totals ---

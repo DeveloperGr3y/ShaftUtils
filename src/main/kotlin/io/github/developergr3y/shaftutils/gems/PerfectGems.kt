@@ -11,6 +11,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
+import net.minecraft.world.entity.player.Inventory
 
 /** The gemstones that come as a Perfect, with their colour. */
 enum class Gem(val label: String, val colour: String, val rgb: Int) {
@@ -104,7 +105,7 @@ object PerfectGems {
         val player = client.player ?: return
         val counts = mutableMapOf<String, Long>()
         val inv = player.inventory
-        for (i in 0 until inv.containerSize) {
+        for (i in 0 until Inventory.INVENTORY_SIZE) { // hotbar and main inventory, not armour
             val stack = inv.getItem(i)
             if (stack.isEmpty) continue
             val name = ShaftProfit.cleanName(stack.hoverName.string.stripFormatting())
