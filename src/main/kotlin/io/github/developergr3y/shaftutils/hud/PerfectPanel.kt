@@ -3,7 +3,6 @@ package io.github.developergr3y.shaftutils.hud
 import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.gems.Gem
 import io.github.developergr3y.shaftutils.gems.PerfectGems
-import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 
 /**
@@ -23,9 +22,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
  */
 object PerfectPanel : Panel("Perfect Gem Tracker") {
     private val config get() = ShaftUtils.config.perfect
-    /** Keep showing for this long after your last gem, outside shafts. */
-    private const val SHOW_AFTER_MINING_MS = 10 * 60_000L
-
     override var position: HudPosition
         get() = config.panelPosition
         set(value) {
@@ -34,8 +30,7 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
 
     override fun defaultPosition() = HudPosition(x = 5, y = 250)
 
-    override fun visible() = config.enabled &&
-        (config.alwaysShow || Mineshaft.inShaft || System.currentTimeMillis() - PerfectGems.lastGain < SHOW_AFTER_MINING_MS)
+    override fun visible() = config.enabled && Visibility.allowed(config.where, config.showWhen)
 
     override fun lines(): List<PanelLine> {
         val gem = PerfectGems.target()

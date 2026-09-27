@@ -22,6 +22,7 @@ import io.github.developergr3y.shaftutils.gems.PerfectGems
 import io.github.developergr3y.shaftutils.shaft.EntryTitle
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
+import io.github.developergr3y.shaftutils.util.Location
 import io.github.notenoughupdates.moulconfig.managed.ManagedConfig
 import io.github.notenoughupdates.moulconfig.platform.MoulConfigScreenComponent
 import net.fabricmc.api.ClientModInitializer
@@ -70,6 +71,7 @@ object ShaftUtils : ClientModInitializer {
                 nextTick = null
                 it()
             }
+            Location.tick(client)
             Mineshaft.tick(client)
             CorpseFinder.tick(client)
             RouteFollower.tick(client)
