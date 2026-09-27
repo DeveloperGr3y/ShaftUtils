@@ -4,6 +4,8 @@ import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.gems.Gem
 import io.github.developergr3y.shaftutils.hud.HudPosition
+import io.github.developergr3y.shaftutils.hud.ShowWhen
+import io.github.developergr3y.shaftutils.hud.ShowWhere
 import io.github.developergr3y.shaftutils.profit.KeyPriceType
 import io.github.developergr3y.shaftutils.profit.PriceType
 import io.github.notenoughupdates.moulconfig.Config
@@ -373,6 +375,18 @@ class ProfitConfig {
 
     @Expose
     @JvmField
+    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, shafts...), only in shafts, or anywhere in SkyBlock.")
+    @ConfigEditorDropdown
+    var where = ShowWhere.MINING_ISLANDS
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Show When", desc = "Only while mining (or holding a pickaxe/drill), or always. Shows with your inventory open.")
+    @ConfigEditorDropdown
+    var showWhen = ShowWhen.ALWAYS
+
+    @Expose
+    @JvmField
     @ConfigOption(name = "Keep After Leaving", desc = "Minutes to keep showing the last shaft's profit after you leave.")
     @ConfigEditorSlider(minValue = 0f, maxValue = 30f, minStep = 1f)
     var keepMinutes = 5
@@ -409,15 +423,27 @@ class PerfectConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Target", desc = "The Perfect gemstone you're working towards. Also: click its name on the panel.")
+    @ConfigOption(name = "Auto Detect", desc = "Follow the gem you're mining (or the shaft you're in). Off: always show the Target below. Also: [Auto] on the panel.")
+    @ConfigEditorBoolean
+    var auto = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Target", desc = "The Perfect gemstone you're working towards when Auto Detect is off. Also: [◂] [▸] on the panel.")
     @ConfigEditorDropdown
     var target = Gem.JASPER
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Always Show", desc = "Show the panel everywhere, not just in shafts and while you're mining gems.")
-    @ConfigEditorBoolean
-    var alwaysShow = false
+    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, shafts...), only in shafts, or anywhere in SkyBlock.")
+    @ConfigEditorDropdown
+    var where = ShowWhere.MINING_ISLANDS
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Show When", desc = "Only while mining (or holding a pickaxe/drill), or always. Shows with your inventory open.")
+    @ConfigEditorDropdown
+    var showWhen = ShowWhen.MINING
 
     // Not shown as options: what your sacks hold (kept between games), and the panel's position.
     @Expose @JvmField var sacks = mutableMapOf<String, Long>()

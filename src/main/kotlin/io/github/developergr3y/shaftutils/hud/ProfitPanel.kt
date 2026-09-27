@@ -48,8 +48,9 @@ object ProfitPanel : Panel("Shaft Profit") {
 
     private fun shown(): ShaftProfit.Session? = if (config.sessionView) session() else shaft()
 
-    // In session view it stays up while you're in a shaft or have one to show.
-    override fun visible() = config.enabled && config.showPanel && (shaft() != null || (config.sessionView && Mineshaft.inShaft && session() != null))
+    // Shaft view: while there's a shaft to show. Session view: while any shaft this game has anything.
+    override fun visible() = config.enabled && config.showPanel && Visibility.allowed(config.where, config.showWhen) &&
+        (shaft() != null || (config.sessionView && session() != null))
 
     override fun lines(): List<PanelLine> {
         val s = shown() ?: return listOf(header("§8nothing yet"))

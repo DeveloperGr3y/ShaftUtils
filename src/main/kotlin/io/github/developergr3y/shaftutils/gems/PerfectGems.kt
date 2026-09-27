@@ -1,7 +1,9 @@
 package io.github.developergr3y.shaftutils.gems
 
 import io.github.developergr3y.shaftutils.ShaftUtils
+import io.github.developergr3y.shaftutils.profit.ItemIds
 import io.github.developergr3y.shaftutils.profit.ShaftProfit
+import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
 import io.github.developergr3y.shaftutils.util.stripFormatting
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents
@@ -54,6 +56,8 @@ object PerfectGems {
 
     /** Gains within this long count towards the rate. */
     private const val RATE_WINDOW_MS = 10 * 60_000L
+    /** Auto mode tracks the gem you've gained most of within this long. */
+    private const val AUTO_WINDOW_MS = 5 * 60_000L
     /** PRISTINE! gems are counted straight away, then skipped when the same gems turn up in a sack message. */
     private const val SET_ASIDE_MS = 60_000L
     /** Sack totals changed by chat are saved at most this often (they're kept between games). */
@@ -73,13 +77,15 @@ object PerfectGems {
     private var inventory: Map<String, Long> = emptyMap()
     private var crystals: Map<Gem, Int> = emptyMap()
     private val setAside = mutableMapOf<String, Pair<Long, Long>>()
-    /** (when, rough equivalents) for each gain of the target gem. */
-    private val gains = ArrayDeque<Pair<Long, Long>>()
-    var sessionGained = 0L
-        private set
-    private var sessionGem: Gem? = null
+    /** A gain of some gem, in rough equivalents. */
+    private class Gain(val at: Long, val gem: Gem, val rough: Long)
+    private val gains = ArrayDeque<Gain>()
+    /** Rough equivalents gained of each gem since the game started. */
+    private val sessionGained = mutableMapOf<Gem, Long>()
     var lastGain = 0L
         private set
+    /** Auto mode's last pick, kept while there's nothing newer to go on. */
+    private var autoGem: Gem? = null
     private var dirtySince = 0L
 
     fun register() {
@@ -89,11 +95,6 @@ object PerfectGems {
     fun tick(client: Minecraft) {
         if (!config.enabled) return
         val player = client.player ?: return
-        if (sessionGem != config.target) {
-            sessionGem = config.target
-            sessionGained = 0
-            gains.clear()
-        }
         val counts = mutableMapOf<String, Long>()
         val crystalCounts = mutableMapOf<Gem, Int>()
         val inv = player.inventory
@@ -187,10 +188,11 @@ object PerfectGems {
         config.sacks[name] = ((config.sacks[name] ?: 0) + amount).coerceAtLeast(0)
         if (dirtySince == 0L) dirtySince = now
         val m = gemItem.matchEntire(name) ?: return
-        if (amount > 0 && Gem.from(m.groupValues[2]) == config.target) {
+        val gem = Gem.from(m.groupValues[2]) ?: return
+        if (amount > 0) {
             val rough = amount * weight(m.groupValues[1])
-            sessionGained += rough
-            gains.addLast(now to rough)
+            sessionGained.merge(gem, rough, Long::plus)
+            gains.addLast(Gain(now, gem, rough))
             lastGain = now
         }
     }
@@ -208,12 +210,28 @@ object PerfectGems {
 
     fun crystals(gem: Gem) = crystals[gem] ?: 0
 
-    /** Rough gems per hour over the last few minutes of mining, or null before there's enough to tell. */
-    fun ratePerHour(): Double? {
+    fun sessionGained(gem: Gem) = sessionGained[gem] ?: 0L
+
+    /** Rough gems of [gem] per hour over the last few minutes of mining, or null before there's enough to tell. */
+    fun ratePerHour(gem: Gem): Double? {
         val now = System.currentTimeMillis()
-        while (gains.isNotEmpty() && now - gains.first().first > RATE_WINDOW_MS) gains.removeFirst()
-        if (gains.isEmpty()) return null
-        val span = maxOf(now - gains.first().first, 60_000L)
-        return gains.sumOf { it.second } * 3_600_000.0 / span
+        while (gains.isNotEmpty() && now - gains.first().at > RATE_WINDOW_MS) gains.removeFirst()
+        val recent = gains.filter { it.gem == gem }
+        if (recent.isEmpty()) return null
+        val span = maxOf(now - recent.first().at, 60_000L)
+        return recent.sumOf { it.rough } * 3_600_000.0 / span
+    }
+
+    /**
+     * The gem the tracker shows. In auto mode: the gem you've gained most of in the last few minutes, else the gem of
+     * the shaft you're in, else the last one it picked; otherwise the one you chose.
+     */
+    fun target(): Gem {
+        if (!config.auto) return config.target
+        val now = System.currentTimeMillis()
+        val recent = gains.filter { now - it.at <= AUTO_WINDOW_MS }.groupBy { it.gem }
+            .maxByOrNull { (_, g) -> g.sumOf { it.rough } }?.key
+        val shaft = Mineshaft.type?.let { Gem.from(ItemIds.shaftName(it)) }
+        return (recent ?: shaft ?: autoGem ?: config.target).also { autoGem = it }
     }
 }
