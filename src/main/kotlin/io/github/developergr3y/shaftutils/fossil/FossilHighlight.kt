@@ -22,7 +22,7 @@ import kotlin.math.ceil
  *  1. Every couple of seconds, the loaded chunks around you are scanned for quartz. Chunk sections whose palette has
  *     no quartz at all are skipped, so this is cheap.
  *  2. Twice a second, the faces to tint are worked out: each quartz block's faces that aren't pressed against another
- *     solid block, within range. Mined blocks drop out here.
+ *     solid block, within range. Every tick, the tinted blocks are checked, and a mined one rebuilds the faces at once.
  *  3. Every frame, those faces are sent to the game as one batch of translucent quads.
  */
 object FossilHighlight {
@@ -36,6 +36,8 @@ object FossilHighlight {
     private var blocks: Set<BlockPos> = emptySet()
     /** Four corners per face, already lifted off the block. */
     private var faces: List<Array<Vec3>> = emptyList()
+    /** The blocks the current faces belong to, checked every tick so a mined one disappears straight away. */
+    private var tinted: List<BlockPos> = emptyList()
     private var ticks = 0
     private var lastLevel: Level? = null
     private val isQuartz = mutableMapOf<Block, Boolean>()
@@ -51,6 +53,7 @@ object FossilHighlight {
         if (!ShaftUtils.config.fossils.enabled || !Mineshaft.inShaft || level == null || player == null) {
             blocks = emptySet()
             faces = emptyList()
+            tinted = emptyList()
             return
         }
         if (level !== lastLevel) {
@@ -59,7 +62,9 @@ object FossilHighlight {
             ticks = 0
         }
         if (ticks % SCAN_TICKS == 0) blocks = scan(level, player.blockPosition())
-        if (ticks % FACE_TICKS == 0) faces = faces(level, player.position())
+        val mined = tinted.filter { !quartz(level.getBlockState(it).block) }
+        if (mined.isNotEmpty()) blocks = blocks - mined.toSet()
+        if (mined.isNotEmpty() || ticks % FACE_TICKS == 0) faces = faces(level, player.position())
         ticks++
     }
 
@@ -90,10 +95,12 @@ object FossilHighlight {
     private fun faces(level: Level, player: Vec3): List<Array<Vec3>> {
         val range = ShaftUtils.config.fossils.range.toDouble()
         val out = mutableListOf<Array<Vec3>>()
+        val owners = mutableListOf<BlockPos>()
         for (pos in blocks) {
             if (Vec3.atCenterOf(pos).distanceTo(player) > range) continue
             val state = level.getBlockState(pos)
             if (!quartz(state.block)) continue // mined since the last scan
+            owners += pos
             for (box in state.getShape(level, pos).toAabbs()) {
                 val b = box.move(pos)
                 for (direction in Direction.entries) {
@@ -106,6 +113,7 @@ object FossilHighlight {
                 }
             }
         }
+        tinted = owners
         return out
     }
 
