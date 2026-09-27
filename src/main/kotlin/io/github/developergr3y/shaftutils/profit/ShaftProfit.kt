@@ -14,6 +14,7 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
+import net.minecraft.world.entity.player.Inventory
 import kotlin.math.abs
 
 /**
@@ -200,7 +201,9 @@ object ShaftProfit {
         }
         val counts = mutableMapOf<String, Long>()
         val inventory = player.inventory
-        for (i in 0 until inventory.containerSize) {
+        // Hotbar and main inventory only: armour isn't loot, and Hypixel resends it (e.g. animated dyes change it
+        // whenever you open your inventory), which would look like new items.
+        for (i in 0 until Inventory.INVENTORY_SIZE) {
             val stack = inventory.getItem(i)
             if (stack.isEmpty) continue
             val name = cleanName(stack.hoverName.string.stripFormatting())
