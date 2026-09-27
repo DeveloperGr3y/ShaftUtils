@@ -1,5 +1,6 @@
 package io.github.developergr3y.shaftutils
 
+import io.github.developergr3y.shaftutils.config.ConfigMigration
 import io.github.developergr3y.shaftutils.config.ModConfig
 import io.github.developergr3y.shaftutils.corpse.CorpseFinder
 import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
@@ -57,6 +58,7 @@ object ShaftUtils : ClientModInitializer {
 
     override fun onInitializeClient() {
         configDir.mkdirs()
+        ConfigMigration.run(File(configDir, "config.json"))
         managedConfig = ManagedConfig.create(File(configDir, "config.json"), ModConfig::class.java) {
             checkExpose = false
         }

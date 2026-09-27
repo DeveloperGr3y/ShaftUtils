@@ -36,6 +36,38 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
+    @Category(name = "Helpers", desc = "Help in the shaft: the corpse finder, entry titles, routes and fossils.")
+    var helpers = HelpersConfig()
+
+    @Expose
+    @JvmField
+    @Category(name = "Trackers", desc = "What you're making: shaft profit and progress towards a Perfect gemstone.")
+    var trackers = TrackersConfig()
+
+    @Expose
+    @JvmField
+    @Category(name = "Debug", desc = "Recording new corpse spots, and exporting them to share.")
+    var debug = DebugConfig()
+
+    // Shortcuts, so the rest of the mod doesn't need to know which group a setting lives in.
+    val corpses get() = helpers.corpses
+    val title get() = helpers.title
+    val routes get() = helpers.routes
+    val fossils get() = helpers.fossils
+    val profit get() = trackers.profit
+    val perfect get() = trackers.perfect
+}
+
+/** The Helpers tab: each helper is a tab under it. */
+class HelpersConfig {
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Helpers", desc = "Things that help while you're in a shaft. Pick one from the list on the left.")
+    @ConfigEditorInfoText
+    var info = false
+
+    @Expose
+    @JvmField
     @Category(name = "Corpse Finder", desc = "Spawn spots that clear as you check them, and corpse waypoints once seen.")
     var corpses = CorpseConfig()
 
@@ -46,13 +78,22 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
-    @Category(name = "Fossils", desc = "A purple tint on the quartz blocks fossils are made of.")
-    var fossils = FossilConfig()
+    @Category(name = "Routes", desc = "Your own ordered mining routes, loaded per shaft type when you arrive.")
+    var routes = RoutesConfig()
 
     @Expose
     @JvmField
-    @Category(name = "Routes", desc = "Your own ordered mining routes, loaded per shaft type when you arrive.")
-    var routes = RoutesConfig()
+    @Category(name = "Fossils", desc = "A purple tint on the quartz blocks fossils are made of.")
+    var fossils = FossilConfig()
+}
+
+/** The Trackers tab: each tracker is a tab under it. */
+class TrackersConfig {
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Trackers", desc = "Panels that track what you're making. Pick one from the list on the left.")
+    @ConfigEditorInfoText
+    var info = false
 
     @Expose
     @JvmField
@@ -63,11 +104,6 @@ class ModConfig : Config() {
     @JvmField
     @Category(name = "Perfect Gems", desc = "Progress towards a Perfect gemstone, from your sacks and inventory.")
     var perfect = PerfectConfig()
-
-    @Expose
-    @JvmField
-    @Category(name = "Debug", desc = "Recording new corpse spots, and exporting them to share.")
-    var debug = DebugConfig()
 }
 
 class GuiConfig {
@@ -119,7 +155,7 @@ class CorpseConfig {
     @JvmField
     @ConfigOption(name = "Chat on Find", desc = "Post a chat message when you spot a corpse.")
     @ConfigEditorBoolean
-    var announce = true
+    var announce = false
 
     @Expose
     @JvmField
@@ -166,7 +202,7 @@ class TitleConfig {
     @JvmField
     @ConfigOption(name = "Sounds", desc = "Play a sound with it (a fanfare for Jasper and Vanguard shafts).")
     @ConfigEditorBoolean
-    var sounds = true
+    var sounds = false
 
     @Expose
     @JvmField
@@ -321,7 +357,7 @@ class FossilConfig {
     @JvmField
     @ConfigOption(name = "Highlight Fossils", desc = "Tint quartz blocks (fossils) purple in Glacite Mineshafts. Only blocks you can see.")
     @ConfigEditorBoolean
-    var enabled = true
+    var enabled = false
 
     @Expose
     @JvmField
@@ -359,7 +395,7 @@ class ProfitConfig {
     @JvmField
     @ConfigOption(name = "Share Buttons", desc = "Add [Copy] [Party] [Guild] buttons. They only fill your chat box.")
     @ConfigEditorBoolean
-    var shareButtons = true
+    var shareButtons = false
 
     @Expose
     @JvmField
@@ -419,7 +455,7 @@ class PerfectConfig {
     @JvmField
     @ConfigOption(name = "Enabled", desc = "Show the Perfect Gem Tracker panel.")
     @ConfigEditorBoolean
-    var enabled = true
+    var enabled = false
 
     @Expose
     @JvmField
@@ -456,7 +492,7 @@ class DebugConfig {
     @JvmField
     @ConfigOption(name = "Record New Spots", desc = "Save corpses seen away from known spots as new spawn spots.")
     @ConfigEditorBoolean
-    var recordSpots = true
+    var recordSpots = false
 
     @Transient
     @JvmField
