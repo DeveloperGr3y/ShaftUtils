@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.0](https://github.com/DeveloperGr3y/ShaftUtils/compare/v0.3.0...v0.4.0) (2026-09-27)
+
+
+### Features
+
+* add 12 corpse spawn spots from the fiesta ([#20](https://github.com/DeveloperGr3y/ShaftUtils/issues/20)) ([59db6f4](https://github.com/DeveloperGr3y/ShaftUtils/commit/59db6f410b13821339833dff31411c9f805279cd))
+
+
+### Bug Fixes
+
+* make the shaft profit tracker count only mining ([#21](https://github.com/DeveloperGr3y/ShaftUtils/issues/21)) ([b1a8697](https://github.com/DeveloperGr3y/ShaftUtils/commit/b1a86970c9d53ac3d23ecdfb407fa70fee43f42d))
+
+
+### Performance
+
+* check for shafts only after changing world, clear mined fossils at once ([#22](https://github.com/DeveloperGr3y/ShaftUtils/issues/22)) ([9b086dc](https://github.com/DeveloperGr3y/ShaftUtils/commit/9b086dc5b681b6b7a6c21add2bba0038b9d525a8))
+
 ## [0.3.0](https://github.com/DeveloperGr3y/ShaftUtils/compare/v0.2.0...v0.3.0) (2026-09-27)
 
 
