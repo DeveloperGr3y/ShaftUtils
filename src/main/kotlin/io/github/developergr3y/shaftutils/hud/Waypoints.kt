@@ -33,7 +33,7 @@ object Waypoints {
                 if (spot === CorpseFinder.likelySpot) {
                     label(graphics, spot.centre, "§a§l◆ likely corpse §f${distance}m", 0xFF55FF55.toInt())
                 } else {
-                    label(graphics, spot.centre, "§e? §7spot §f${distance}m", 0xFFFFFF55.toInt())
+                    label(graphics, spot.centre, "§e? §7corpse §f${distance}m", 0xFFFFFF55.toInt())
                 }
             }
         }
