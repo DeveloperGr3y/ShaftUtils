@@ -384,7 +384,13 @@ class PerfectConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Target", desc = "The Perfect gemstone you're working towards. Also: click its name on the panel.")
+    @ConfigOption(name = "Auto Detect", desc = "Follow the gem you're mining (or the shaft you're in). Off: always show the Target below. Also: [Auto] on the panel.")
+    @ConfigEditorBoolean
+    var auto = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Target", desc = "The Perfect gemstone you're working towards when Auto Detect is off. Also: [◂] [▸] on the panel.")
     @ConfigEditorDropdown
     var target = Gem.JASPER
 

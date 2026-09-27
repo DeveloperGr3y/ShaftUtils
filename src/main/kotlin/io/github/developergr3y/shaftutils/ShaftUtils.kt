@@ -132,19 +132,26 @@ object ShaftUtils : ClientModInitializer {
         }
     }
 
-    /** /shaftutils perfect <gem>: pick the Perfect gemstone the tracker counts towards. */
+    /** /shaftutils perfect <gem|auto>: pick the Perfect gemstone the tracker counts towards, or follow what you mine. */
     private fun perfectCommand() = ClientCommands.literal("perfect").then(
         ClientCommands.argument("gem", StringArgumentType.word())
             .suggests { _, builder ->
+                builder.suggest("auto")
                 Gem.entries.forEach { builder.suggest(it.label.lowercase()) }
                 builder.buildFuture()
             }
             .executes { ctx ->
-                val gem = Gem.from(StringArgumentType.getString(ctx, "gem"))
-                if (gem == null) {
-                    chat("§cUnknown gem. Try: ${Gem.entries.joinToString { it.label.lowercase() }}")
+                val input = StringArgumentType.getString(ctx, "gem")
+                val gem = Gem.from(input)
+                if (input.equals("auto", ignoreCase = true)) {
+                    config.perfect.auto = true
+                    saveConfig()
+                    chat("Tracking whichever gem you're mining.")
+                } else if (gem == null) {
+                    chat("§cUnknown gem. Try: auto, ${Gem.entries.joinToString { it.label.lowercase() }}")
                 } else {
                     config.perfect.target = gem
+                    config.perfect.auto = false
                     saveConfig()
                     chat("Tracking ${gem.colour}Perfect ${gem.label}§r.")
                 }

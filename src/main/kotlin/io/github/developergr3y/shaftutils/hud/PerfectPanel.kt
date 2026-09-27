@@ -9,7 +9,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 /**
  * Progress towards the Perfect gemstone you've picked:
  *
- *   Perfect Gem Tracker [◂] [▸]
+ *   Perfect Gem Tracker [Auto] [◂] [▸]
  *   ❁ Perfect Jasper ×0.9              92.2%
  *   [█████][█████][█████][█████][███  ]
  *   Progress                4.61 / 5 flawless
@@ -18,7 +18,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
  *   ETA                        39m @ 310k/h
  *
  * The bar is five segments, one per flawless. Once you have enough for a Perfect it says how many you can craft,
- * the bar goes dim green and the next Perfect fills over it. [◂] [▸] or the gem's name change gem (inventory open).
+ * the bar goes dim green and the next Perfect fills over it. [Auto] follows the gem you're mining; [◂] [▸] or the
+ * gem's name pick one yourself (inventory open).
  */
 object PerfectPanel : Panel("Perfect Gem Tracker") {
     private val config get() = ShaftUtils.config.perfect
@@ -37,9 +38,9 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         (config.alwaysShow || Mineshaft.inShaft || System.currentTimeMillis() - PerfectGems.lastGain < SHOW_AFTER_MINING_MS)
 
     override fun lines(): List<PanelLine> {
-        val gem = config.target
+        val gem = PerfectGems.target()
         val total = PerfectGems.roughTotal(gem)
-        return build(gem, total, PerfectGems.crystals(gem), PerfectGems.sessionGained, PerfectGems.ratePerHour(), PerfectGems.synced(gem))
+        return build(gem, total, PerfectGems.crystals(gem), PerfectGems.sessionGained(gem), PerfectGems.ratePerHour(gem), PerfectGems.synced(gem))
     }
 
     override fun previewLines() = build(Gem.JASPER, 2_360_832, 0, 186_000, 310_000.0, synced = true)
@@ -51,9 +52,18 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         val flawless = rest.toDouble() / PerfectGems.FLAWLESS
 
         val lines = mutableListOf<PanelLine>()
-        val changeTip = listOf("§eClick §7[◂] [▸] or the gem's name to change gem", "§7(with your inventory open)", "§7Or: §e/shaftutils perfect <gem>")
+        val changeTip = listOf(
+            "§eClick §7[◂] [▸] or the gem's name to pick a gem",
+            "§a[Auto]§7: follow the gem you're mining",
+            "§7(with your inventory open)",
+            "§7Or: §e/shaftutils perfect <gem|auto>",
+        )
+        val auto = Cell(if (config.auto) "§a[Auto]" else "§8[Auto]") {
+            config.auto = !config.auto
+            ShaftUtils.saveConfig()
+        }
         lines += PanelLine(
-            listOf(Cell("§6§lPerfect Gem Tracker"), Cell("§e[◂]") { change(Gem::previous) }, Cell("§e[▸]") { change(Gem::next) }),
+            listOf(Cell("§6§lPerfect Gem Tracker"), auto, Cell("§e[◂]") { change(Gem::previous) }, Cell("§e[▸]") { change(Gem::next) }),
             tooltip = changeTip,
         )
         val count = "${if (ready > 0) "§a" else "§7"}×${trim(perfects)}"
@@ -81,8 +91,10 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         return lines
     }
 
+    /** Pick a gem yourself (leaves auto mode, starting from the gem it was showing). */
     private fun change(step: (Gem) -> Gem) {
-        config.target = step(config.target)
+        config.target = step(PerfectGems.target())
+        config.auto = false
         ShaftUtils.saveConfig()
     }
 
