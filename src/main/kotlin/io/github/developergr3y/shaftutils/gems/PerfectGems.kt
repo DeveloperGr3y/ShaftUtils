@@ -47,6 +47,9 @@ enum class Gem(val label: String, val colour: String, val rgb: Int) {
  *
  * Everything is counted in rough-gem equivalents: 80 rough = 1 flawed, 80 flawed = 1 fine, 80 fine = 1 flawless,
  * and 5 flawless (plus a crystal) = 1 perfect.
+ *
+ * Crystals aren't inventory items: the "Crystal Hollows Crystals" item lists each one as "Onyx ✔ Found" or
+ * "Jasper ✖ Not Found". That's read whenever a menu showing it is open, and remembered.
  */
 object PerfectGems {
     val tiers = listOf("Rough", "Flawed", "Fine", "Flawless")
@@ -70,12 +73,13 @@ object PerfectGems {
     /** Lore of a gem in the Gemstones Sack, e.g. " Rough: 18,432 (...)"; single-item sacks say "Stored: 18,432/...". */
     private val tierLore = Regex("^\\s*(Rough|Flawed|Fine|Flawless): ([\\d,]+)")
     private val storedLore = Regex("^\\s*Stored: ([\\d,]+)")
+    /** "  Onyx ✔ Found" / "  Jasper ✖ Not Found" in the Crystal Hollows Crystals item. */
+    private val crystalLore = Regex("^\\s*(\\w+) \\S+ (Found|Not Found)\\s*$")
 
     private val config get() = ShaftUtils.config.perfect
 
     /** Gem item name -> how many are in your inventory right now. */
     private var inventory: Map<String, Long> = emptyMap()
-    private var crystals: Map<Gem, Int> = emptyMap()
     private val setAside = mutableMapOf<String, Pair<Long, Long>>()
     /** A gain of some gem, in rough equivalents. */
     private class Gain(val at: Long, val gem: Gem, val rough: Long)
@@ -96,18 +100,18 @@ object PerfectGems {
         if (!config.enabled) return
         val player = client.player ?: return
         val counts = mutableMapOf<String, Long>()
-        val crystalCounts = mutableMapOf<Gem, Int>()
         val inv = player.inventory
         for (i in 0 until inv.containerSize) {
             val stack = inv.getItem(i)
             if (stack.isEmpty) continue
             val name = ShaftProfit.cleanName(stack.hoverName.string.stripFormatting())
             if (gemItem.matches(name)) counts.merge(name, stack.count.toLong(), Long::plus)
-            if (name.endsWith(" Crystal")) Gem.from(name.removeSuffix(" Crystal"))?.let { crystalCounts.merge(it, stack.count, Int::plus) }
         }
         inventory = counts
-        crystals = crystalCounts
-        (Compat.screen as? AbstractContainerScreen<*>)?.let { readSack(it) }
+        (Compat.screen as? AbstractContainerScreen<*>)?.let {
+            readSack(it)
+            readCrystals(it)
+        }
         if (dirtySince != 0L && System.currentTimeMillis() - dirtySince > SAVE_MS) {
             dirtySince = 0L
             ShaftUtils.saveConfig()
@@ -137,6 +141,29 @@ object PerfectGems {
             }
         }
         if (changed) ShaftUtils.saveConfig()
+    }
+
+    /** With any menu open that shows the Crystal Hollows Crystals item: which crystals you have. */
+    private fun readCrystals(screen: AbstractContainerScreen<*>) {
+        for (slot in screen.menu.slots) {
+            val stack = slot.item
+            if (stack.isEmpty || !stack.hoverName.string.stripFormatting().contains("Crystal Hollows Crystals")) continue
+            val lore = stack.get(DataComponents.LORE)?.lines()?.map { it.string.stripFormatting() } ?: continue
+            val found = mutableSetOf<String>()
+            var seen = false
+            for (line in lore) {
+                val m = crystalLore.find(line) ?: continue
+                val gem = Gem.from(m.groupValues[1]) ?: continue
+                seen = true
+                if (m.groupValues[2] == "Found") found += gem.label
+            }
+            if (seen && (found != config.crystals || !config.crystalsKnown)) {
+                config.crystals = found
+                config.crystalsKnown = true
+                ShaftUtils.saveConfig()
+            }
+            return
+        }
     }
 
     private fun set(name: String, amount: String): Boolean {
@@ -208,7 +235,8 @@ object PerfectGems {
         ((config.sacks[name] ?: 0) + (inventory[name] ?: 0)) * weight(tier)
     }
 
-    fun crystals(gem: Gem) = crystals[gem] ?: 0
+    /** Whether you have [gem]'s crystal, or null if the Crystal Hollows Crystals item hasn't been seen yet. */
+    fun hasCrystal(gem: Gem): Boolean? = if (config.crystalsKnown) gem.label in config.crystals else null
 
     fun sessionGained(gem: Gem) = sessionGained[gem] ?: 0L
 
