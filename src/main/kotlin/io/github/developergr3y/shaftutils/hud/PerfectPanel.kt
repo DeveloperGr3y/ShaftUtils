@@ -3,6 +3,7 @@ package io.github.developergr3y.shaftutils.hud
 import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.gems.Gem
 import io.github.developergr3y.shaftutils.gems.PerfectGems
+import io.github.developergr3y.shaftutils.profit.ShaftProfit
 import net.minecraft.client.gui.GuiGraphicsExtractor
 
 /**
@@ -88,6 +89,17 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         } else {
             val hours = (PerfectGems.PERFECT - rest) / rate
             PanelLine.row(if (ready > 0) "§7Next in" else "§7ETA", "§f${time(hours)} §8@ ${compact(rate.toLong())}/h")
+        }
+        if (ShaftProfit.sackDataMissing()) {
+            lines += PanelLine(
+                listOf(Cell("§c⚠ No sack messages")),
+                tooltip = listOf(
+                    "§7Nothing from your sacks has been counted.",
+                    "§7Turn on §fSack Notifications§7 in Hypixel's",
+                    "§e/settings§7 → §fChat Settings§7.",
+                ),
+            )
+            lines += PanelLine("§7Turn on §fSack Notifications §8(/settings)")
         }
         if (!synced) lines += PanelLine("§eOpen your Gemstones Sack to count it")
         if (crystal == null) lines += PanelLine("§eOpen a menu with Crystal Hollows Crystals")
