@@ -29,6 +29,7 @@ enum class Gem(val label: String, val colour: String, val rgb: Int) {
     override fun toString() = label
 
     fun next() = entries[(ordinal + 1) % entries.size]
+    fun previous() = entries[(ordinal + entries.size - 1) % entries.size]
 
     companion object {
         fun from(label: String) = entries.firstOrNull { it.label.equals(label, ignoreCase = true) }

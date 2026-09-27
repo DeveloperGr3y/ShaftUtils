@@ -9,7 +9,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 /**
  * Progress towards the Perfect gemstone you've picked:
  *
- *   Perfect Gem Tracker
+ *   Perfect Gem Tracker [◂] [▸]
  *   ❁ Perfect Jasper ×0.9              92.2%
  *   [█████][█████][█████][█████][███  ]
  *   Progress                4.61 / 5 flawless
@@ -18,7 +18,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
  *   ETA                        39m @ 310k/h
  *
  * The bar is five segments, one per flawless. Once you have enough for a Perfect it says how many you can craft,
- * the bar goes dim green and the next Perfect fills over it. Click the gem's name (inventory open) to change it.
+ * the bar goes dim green and the next Perfect fills over it. [◂] [▸] or the gem's name change gem (inventory open).
  */
 object PerfectPanel : Panel("Perfect Gem Tracker") {
     private val config get() = ShaftUtils.config.perfect
@@ -51,17 +51,19 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         val flawless = rest.toDouble() / PerfectGems.FLAWLESS
 
         val lines = mutableListOf<PanelLine>()
-        lines += PanelLine("§6§lPerfect Gem Tracker")
+        val changeTip = listOf("§eClick §7[◂] [▸] or the gem's name to change gem", "§7(with your inventory open)", "§7Or: §e/shaftutils perfect <gem>")
+        lines += PanelLine(
+            listOf(Cell("§6§lPerfect Gem Tracker"), Cell("§e[◂]") { change(Gem::previous) }, Cell("§e[▸]") { change(Gem::next) }),
+            tooltip = changeTip,
+        )
         val count = "${if (ready > 0) "§a" else "§7"}×${trim(perfects)}"
         lines += PanelLine(
             listOf(
-                Cell("${gem.colour}❁ Perfect ${gem.label} $count") {
-                    config.target = config.target.next()
-                    ShaftUtils.saveConfig()
-                },
+                Cell("${gem.colour}❁ Perfect ${gem.label} $count") { change(Gem::next) },
                 Cell(if (ready > 0) "" else "§f${"%.1f".format(perfects * 100)}%"),
             ),
             columns = true,
+            tooltip = changeTip,
         )
         if (ready > 0) lines += PanelLine("§a✔ Can craft $ready×")
         lines += PanelLine.painted { g, x, y, width -> bar(g, x, y, width, flawless, ready > 0, gem.rgb) }
@@ -77,6 +79,11 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         }
         if (!synced) lines += PanelLine("§eOpen your Gemstones Sack to count it")
         return lines
+    }
+
+    private fun change(step: (Gem) -> Gem) {
+        config.target = step(config.target)
+        ShaftUtils.saveConfig()
     }
 
     /** Five segments, one per flawless; [fill] is how many flawless you have towards the next Perfect. */
