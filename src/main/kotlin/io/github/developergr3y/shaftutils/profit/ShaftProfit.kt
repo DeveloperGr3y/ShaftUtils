@@ -345,7 +345,7 @@ object ShaftProfit {
     }
 
     /** Every hover text in a message (Hypixel puts the sack item list in one). */
-    private fun hovers(c: Component): List<Component> {
+    fun hovers(c: Component): List<Component> {
         val out = mutableListOf<Component>()
         fun walk(x: Component) {
             (x.style.hoverEvent as? HoverEvent.ShowText)?.let { out += it.value() }

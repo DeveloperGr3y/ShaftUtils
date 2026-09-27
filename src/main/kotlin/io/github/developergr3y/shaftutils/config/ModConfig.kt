@@ -2,7 +2,10 @@ package io.github.developergr3y.shaftutils.config
 
 import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
+import io.github.developergr3y.shaftutils.gems.Gem
 import io.github.developergr3y.shaftutils.hud.HudPosition
+import io.github.developergr3y.shaftutils.hud.ShowWhen
+import io.github.developergr3y.shaftutils.hud.ShowWhere
 import io.github.developergr3y.shaftutils.profit.KeyPriceType
 import io.github.developergr3y.shaftutils.profit.PriceType
 import io.github.notenoughupdates.moulconfig.Config
@@ -55,6 +58,11 @@ class ModConfig : Config() {
     @JvmField
     @Category(name = "Profit", desc = "What each shaft made: mining, corpse loot, minus the keys you used.")
     var profit = ProfitConfig()
+
+    @Expose
+    @JvmField
+    @Category(name = "Perfect Gems", desc = "Progress towards a Perfect gemstone, from your sacks and inventory.")
+    var perfect = PerfectConfig()
 
     @Expose
     @JvmField
@@ -367,6 +375,18 @@ class ProfitConfig {
 
     @Expose
     @JvmField
+    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, Gold Mine, Deep Caverns, shafts), those plus the Crimson Isle, only in shafts, or anywhere in SkyBlock.")
+    @ConfigEditorDropdown
+    var where = ShowWhere.MINING_ISLANDS
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Show When", desc = "While mining or holding a pickaxe/drill/gauntlet, only while holding one, or always. Shows with your inventory open.")
+    @ConfigEditorDropdown
+    var showWhen = ShowWhen.ALWAYS
+
+    @Expose
+    @JvmField
     @ConfigOption(name = "Keep After Leaving", desc = "Minutes to keep showing the last shaft's profit after you leave.")
     @ConfigEditorSlider(minValue = 0f, maxValue = 30f, minStep = 1f)
     var keepMinutes = 5
@@ -386,6 +406,51 @@ class ProfitConfig {
     // Not shown as options: the panel's Shaft / Session switch, and its position (GUI > Edit GUI Locations).
     @Expose @JvmField var sessionView = false
     @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 150)
+}
+
+class PerfectConfig {
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Getting started", desc = "Open your §eGemstones Sack§7 once so the tracker knows what's in it. After that it follows your sack messages; opening the sack again corrects it.")
+    @ConfigEditorInfoText(infoTitle = "Info")
+    var info = false
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Enabled", desc = "Show the Perfect Gem Tracker panel.")
+    @ConfigEditorBoolean
+    var enabled = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Auto Detect", desc = "Follow the gem you're mining (or the shaft you're in). Off: always show the Target below. Also: [Auto] on the panel.")
+    @ConfigEditorBoolean
+    var auto = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Target", desc = "The Perfect gemstone you're working towards when Auto Detect is off. Also: [◂] [▸] on the panel.")
+    @ConfigEditorDropdown
+    var target = Gem.JASPER
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, Gold Mine, Deep Caverns, shafts), those plus the Crimson Isle, only in shafts, or anywhere in SkyBlock.")
+    @ConfigEditorDropdown
+    var where = ShowWhere.MINING_ISLANDS
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Show When", desc = "While mining or holding a pickaxe/drill/gauntlet, only while holding one, or always. Shows with your inventory open.")
+    @ConfigEditorDropdown
+    var showWhen = ShowWhen.MINING
+
+    // Not shown as options: what your sacks hold (kept between games), and the panel's position.
+    @Expose @JvmField var sacks = mutableMapOf<String, Long>()
+    @Expose @JvmField var synced = mutableSetOf<String>()
+    @Expose @JvmField var crystals = mutableSetOf<String>()
+    @Expose @JvmField var crystalsKnown = false
+    @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 250)
 }
 
 class DebugConfig {

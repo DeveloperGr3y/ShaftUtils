@@ -24,12 +24,20 @@ class Cell(val text: String, val onClick: (() -> Unit)? = null)
  *    column lines up with the same column on the other lines (name · count · value).
  *  - [columns] = false: cells just follow each other (e.g. a title, or a row of buttons).
  * [tooltip] shows when you hover the line with your inventory open.
+ * [paint] draws something other than text across the line (e.g. a progress bar): given x, y and the panel's inner width.
  */
-class PanelLine(val cells: List<Cell>, val columns: Boolean = false, val tooltip: List<String>? = null) {
+class PanelLine(
+    val cells: List<Cell>,
+    val columns: Boolean = false,
+    val tooltip: List<String>? = null,
+    val paint: ((GuiGraphicsExtractor, Int, Int, Int) -> Unit)? = null,
+) {
     constructor(text: String, onClick: (() -> Unit)? = null) : this(listOf(Cell(text, onClick)))
 
     companion object {
         fun row(vararg cells: String, tooltip: List<String>? = null) = PanelLine(cells.map { Cell(it) }, columns = true, tooltip = tooltip)
+
+        fun painted(paint: (GuiGraphicsExtractor, Int, Int, Int) -> Unit) = PanelLine(emptyList(), paint = paint)
     }
 }
 
@@ -73,7 +81,7 @@ abstract class Panel(val label: String) {
             }
         }
         val tableWidth = if (colWidths.isEmpty()) 0 else colWidths.sum() + GAP * (colWidths.size - 1)
-        val flowWidth = lines.filter { !it.columns }.maxOfOrNull { l -> l.cells.sumOf { textWidth(it.text) } + GAP * (l.cells.size - 1) } ?: 0
+        val flowWidth = lines.filter { !it.columns && it.cells.isNotEmpty() }.maxOfOrNull { l -> l.cells.sumOf { textWidth(it.text) } + GAP * (l.cells.size - 1) } ?: 0
         val inner = maxOf(tableWidth, flowWidth)
         width = inner + PADDING * 2
         height = lines.size * LINE_HEIGHT + PADDING * 2 - 1
@@ -115,6 +123,7 @@ abstract class Panel(val label: String) {
             if (p === hovered && p.cell.onClick != null) graphics.fill(p.x0 - 1, y - 1, p.x1 + 1, y + LINE_HEIGHT - 1, 0x40FFFFFF)
             graphics.text(font, p.cell.text, p.x0, y, -1, true)
         }
+        lines.forEachIndexed { index, line -> line.paint?.invoke(graphics, PADDING, PADDING + index * LINE_HEIGHT, inner) }
         pose.popMatrix()
 
         if (interactive) lines.getOrNull(hoveredLine)?.tooltip?.let { tip ->

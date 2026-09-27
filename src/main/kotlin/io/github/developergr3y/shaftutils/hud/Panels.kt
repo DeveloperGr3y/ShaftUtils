@@ -12,7 +12,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
  * so their buttons (e.g. the profit panel's price switch) can be clicked.
  */
 object Panels {
-    val all: List<Panel> = listOf(CorpseHelper, ProfitPanel)
+    val all: List<Panel> = listOf(CorpseHelper, ProfitPanel, PerfectPanel)
 
     fun register() {
         ScreenEvents.AFTER_INIT.register { _, screen, _, _ ->

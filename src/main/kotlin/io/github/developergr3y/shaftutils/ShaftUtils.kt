@@ -18,9 +18,12 @@ import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
 import com.mojang.brigadier.arguments.StringArgumentType
 import io.github.developergr3y.shaftutils.hud.Waypoints
+import io.github.developergr3y.shaftutils.gems.Gem
+import io.github.developergr3y.shaftutils.gems.PerfectGems
 import io.github.developergr3y.shaftutils.shaft.EntryTitle
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
+import io.github.developergr3y.shaftutils.util.Location
 import io.github.notenoughupdates.moulconfig.managed.ManagedConfig
 import io.github.notenoughupdates.moulconfig.platform.MoulConfigScreenComponent
 import net.fabricmc.api.ClientModInitializer
@@ -63,17 +66,20 @@ object ShaftUtils : ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register { OrganDonor.register() }
         CorpseFinder.register()
         ShaftProfit.register()
+        PerfectGems.register()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             nextTick?.let {
                 nextTick = null
                 it()
             }
+            Location.tick(client)
             Mineshaft.tick(client)
             CorpseFinder.tick(client)
             RouteFollower.tick(client)
             RouteKeys.tick(client)
             ShaftProfit.tick(client)
+            PerfectGems.tick(client)
             FossilHighlight.tick(client)
             EntryTitle.tick()
         }
@@ -125,11 +131,39 @@ object ShaftUtils : ClientModInitializer {
                         addSpotHere()
                         1
                     })
+                    .then(perfectCommand())
                     .then(routeCommand())
 ,
             )
         }
     }
+
+    /** /shaftutils perfect <gem|auto>: pick the Perfect gemstone the tracker counts towards, or follow what you mine. */
+    private fun perfectCommand() = ClientCommands.literal("perfect").then(
+        ClientCommands.argument("gem", StringArgumentType.word())
+            .suggests { _, builder ->
+                builder.suggest("auto")
+                Gem.entries.forEach { builder.suggest(it.label.lowercase()) }
+                builder.buildFuture()
+            }
+            .executes { ctx ->
+                val input = StringArgumentType.getString(ctx, "gem")
+                val gem = Gem.from(input)
+                if (input.equals("auto", ignoreCase = true)) {
+                    config.perfect.auto = true
+                    saveConfig()
+                    chat("Tracking whichever gem you're mining.")
+                } else if (gem == null) {
+                    chat("§cUnknown gem. Try: auto, ${Gem.entries.joinToString { it.label.lowercase() }}")
+                } else {
+                    config.perfect.target = gem
+                    config.perfect.auto = false
+                    saveConfig()
+                    chat("Tracking ${gem.colour}Perfect ${gem.label}§r.")
+                }
+                1
+            },
+    )
 
     /**
      * /shaftutils route: import (from clipboard), next, back, restart, reload, list, delete, folder.
