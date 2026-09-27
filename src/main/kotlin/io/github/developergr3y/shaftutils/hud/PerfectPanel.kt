@@ -73,8 +73,8 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         if (ready > 0) lines += PanelLine("§a✔ Can craft $ready×")
         lines += PanelLine.painted { g, x, y, width -> bar(g, x, y, width, flawless, ready > 0, gem.rgb) }
         lines += PanelLine.row(if (ready > 0) "§7Next one" else "§7Progress", "§f${"%.2f".format(flawless)}§8 / 5 flawless")
-        val needed = maxOf(1, ready)
-        lines += PanelLine.row("§7Crystal", if (crystals >= needed) "§a$crystals§8/$needed §a✔" else "§c$crystals§8/$needed §c✘")
+        // You can only hold one crystal at a time.
+        lines += PanelLine.row("§7Crystal", if (crystals > 0) "§a1§8/1 §a✔" else "§c0§8/1 §c✘")
         lines += PanelLine.row("§7This session", "§a+${compact(session)} rough")
         lines += if (rate == null || rate <= 0) {
             PanelLine.row(if (ready > 0) "§7Next in" else "§7ETA", "§8mine to see")
@@ -97,14 +97,45 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
     private fun bar(g: GuiGraphicsExtractor, x: Int, y: Int, width: Int, fill: Double, lapped: Boolean, rgb: Int) {
         val gap = 2
         val segment = (width - gap * 4) / 5
-        val top = y + 1
-        val bottom = y + 7
+        val top = y
+        val bottom = y + 8
+        val colour = if (lapped) 0x55FF55 else rgb
         for (i in 0 until 5) {
             val left = x + i * (segment + gap)
-            g.fill(left, top, left + segment, bottom, if (lapped) 0xFF2F5A22.toInt() else 0xFF2A2A30.toInt())
+            // Empty track, with a dark rim so it reads as a slot.
+            rounded(g, left, top, left + segment, bottom, 0xFF16161A.toInt())
+            rounded(g, left + 1, top + 1, left + segment - 1, bottom - 1, if (lapped) 0xFF2F5A22.toInt() else 0xFF2E2E36.toInt())
             val part = (fill - i).coerceIn(0.0, 1.0)
-            if (part > 0) g.fill(left, top, left + (segment * part).toInt(), bottom, 0xFF000000.toInt() or (if (lapped) 0x55FF55 else rgb))
+            val right = left + 1 + ((segment - 2) * part).toInt()
+            if (right - (left + 1) < 1) continue
+            // The fill: a lighter top edge and a darker bottom edge give it a bit of depth.
+            rounded(g, left + 1, top + 1, right, bottom - 1, argb(colour))
+            g.fill(left + 2, top + 1, right - 1, top + 2, argb(shade(colour, 1.35)))
+            g.fill(left + 2, bottom - 2, right - 1, bottom - 1, argb(shade(colour, 0.7)))
         }
+    }
+
+    /** A box with its four corner pixels left out, so it looks rounded. */
+    private fun rounded(g: GuiGraphicsExtractor, x0: Int, y0: Int, x1: Int, y1: Int, colour: Int) {
+        if (x1 - x0 < 3 || y1 - y0 < 3) {
+            g.fill(x0, y0, x1, y1, colour)
+            return
+        }
+        g.fill(x0 + 1, y0, x1 - 1, y1, colour)
+        g.fill(x0, y0 + 1, x0 + 1, y1 - 1, colour)
+        g.fill(x1 - 1, y0 + 1, x1, y1 - 1, colour)
+    }
+
+    private fun argb(rgb: Int) = 0xFF000000.toInt() or rgb
+
+    /** Lighter (factor > 1, towards white) or darker (factor < 1) version of a colour. */
+    private fun shade(rgb: Int, factor: Double): Int {
+        fun channel(shift: Int): Int {
+            val c = rgb shr shift and 0xFF
+            val v = if (factor >= 1) c + (255 - c) * (factor - 1) else c * factor
+            return v.toInt().coerceIn(0, 255) shl shift
+        }
+        return channel(16) or channel(8) or channel(0)
     }
 
     /** 0.92 -> "0.9", 2.0 -> "2", 3.46 -> "3.5". */
