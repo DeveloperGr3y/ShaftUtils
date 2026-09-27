@@ -54,7 +54,7 @@ object ProfitPanel : Panel("Shaft Profit") {
         (shaft() != null || (config.sessionView && session() != null))
 
     override fun lines(): List<PanelLine> {
-        val s = shown() ?: return listOf(header("§8nothing yet"))
+        val s = shown() ?: return header("§8nothing yet")
         val t = ShaftProfit.totals(s)
         val end = s.endedAt ?: System.currentTimeMillis()
         val minutes = (end - s.startedAt) / 60_000.0
