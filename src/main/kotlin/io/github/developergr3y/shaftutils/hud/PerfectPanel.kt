@@ -36,12 +36,12 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
     override fun lines(): List<PanelLine> {
         val gem = PerfectGems.target()
         val total = PerfectGems.roughTotal(gem)
-        return build(gem, total, PerfectGems.crystals(gem), PerfectGems.sessionGained(gem), PerfectGems.ratePerHour(gem), PerfectGems.synced(gem))
+        return build(gem, total, PerfectGems.hasCrystal(gem), PerfectGems.sessionGained(gem), PerfectGems.ratePerHour(gem), PerfectGems.synced(gem))
     }
 
-    override fun previewLines() = build(Gem.JASPER, 2_360_832, 0, 186_000, 310_000.0, synced = true)
+    override fun previewLines() = build(Gem.JASPER, 2_360_832, false, 186_000, 310_000.0, synced = true)
 
-    private fun build(gem: Gem, total: Long, crystals: Int, session: Long, rate: Double?, synced: Boolean): List<PanelLine> {
+    private fun build(gem: Gem, total: Long, crystal: Boolean?, session: Long, rate: Double?, synced: Boolean): List<PanelLine> {
         val perfects = total.toDouble() / PerfectGems.PERFECT
         val ready = (total / PerfectGems.PERFECT).toInt()
         val rest = total - ready * PerfectGems.PERFECT
@@ -73,8 +73,15 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         if (ready > 0) lines += PanelLine("§a✔ Can craft $ready×")
         lines += PanelLine.painted { g, x, y, width -> bar(g, x, y, width, flawless, ready > 0, gem.rgb) }
         lines += PanelLine.row(if (ready > 0) "§7Next one" else "§7Progress", "§f${"%.2f".format(flawless)}§8 / 5 flawless")
-        // You can only hold one crystal at a time.
-        lines += PanelLine.row("§7Crystal", if (crystals > 0) "§a1§8/1 §a✔" else "§c0§8/1 §c✘")
+        // You can only hold one of each crystal.
+        lines += PanelLine.row(
+            "§7Crystal",
+            when (crystal) {
+                true -> "§a1§8/1 §a✔"
+                false -> "§c0§8/1 §c✘"
+                null -> "§8? (see below)"
+            },
+        )
         lines += PanelLine.row("§7This session", "§a+${compact(session)} rough")
         lines += if (rate == null || rate <= 0) {
             PanelLine.row(if (ready > 0) "§7Next in" else "§7ETA", "§8mine to see")
@@ -83,6 +90,7 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
             PanelLine.row(if (ready > 0) "§7Next in" else "§7ETA", "§f${time(hours)} §8@ ${compact(rate.toLong())}/h")
         }
         if (!synced) lines += PanelLine("§eOpen your Gemstones Sack to count it")
+        if (crystal == null) lines += PanelLine("§eOpen a menu with Crystal Hollows Crystals")
         return lines
     }
 

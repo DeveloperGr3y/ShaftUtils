@@ -484,6 +484,8 @@ class PerfectConfig {
     // Not shown as options: what your sacks hold (kept between games), and the panel's position.
     @Expose @JvmField var sacks = mutableMapOf<String, Long>()
     @Expose @JvmField var synced = mutableSetOf<String>()
+    @Expose @JvmField var crystals = mutableSetOf<String>()
+    @Expose @JvmField var crystalsKnown = false
     @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 250)
 }
 
