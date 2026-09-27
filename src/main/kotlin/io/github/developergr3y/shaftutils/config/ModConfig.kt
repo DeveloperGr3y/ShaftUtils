@@ -78,11 +78,6 @@ class HelpersConfig {
 
     @Expose
     @JvmField
-    @Category(name = "Fossils", desc = "A purple tint on the quartz blocks fossils are made of.")
-    var fossils = FossilConfig()
-
-    @Expose
-    @JvmField
     @Category(name = "Routes", desc = "Your own ordered mining routes, loaded per shaft type when you arrive.")
     var routes = RoutesConfig()
 
