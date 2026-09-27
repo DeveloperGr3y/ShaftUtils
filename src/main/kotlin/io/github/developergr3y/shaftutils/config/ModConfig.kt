@@ -46,6 +46,11 @@ class ModConfig : Config() {
 
     @Expose
     @JvmField
+    @Category(name = "Fossils", desc = "A purple tint on the quartz blocks fossils are made of.")
+    var fossils = FossilConfig()
+
+    @Expose
+    @JvmField
     @Category(name = "Routes", desc = "Your own ordered mining routes, loaded per shaft type when you arrive.")
     var routes = RoutesConfig()
 
@@ -309,6 +314,26 @@ class RoutesConfig {
     @ConfigOption(name = "Open Routes Folder", desc = "One file per shaft code, e.g. TOPA_1.json. CRYSTAL.json covers crystal shafts.")
     @ConfigEditorButton(buttonText = "Open")
     val openFolder = Runnable { ShaftUtils.openRoutesFolder() }
+}
+
+class FossilConfig {
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Highlight Fossils", desc = "Tint quartz blocks (fossils) purple in Glacite Mineshafts. Not through walls.")
+    @ConfigEditorBoolean
+    var enabled = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Opacity", desc = "How strong the tint is, in percent.")
+    @ConfigEditorSlider(minValue = 10f, maxValue = 80f, minStep = 5f)
+    var opacity = 80f
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Range", desc = "Only tint fossils within this many blocks.")
+    @ConfigEditorSlider(minValue = 8f, maxValue = 64f, minStep = 4f)
+    var range = 40f
 }
 
 class ProfitConfig {
