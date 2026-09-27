@@ -5,6 +5,7 @@ import io.github.developergr3y.shaftutils.corpse.CorpseFinder
 import io.github.developergr3y.shaftutils.corpse.CorpseFinder.SpotState
 import io.github.developergr3y.shaftutils.corpse.OrganDonor
 import io.github.developergr3y.shaftutils.corpse.SpawnData
+import io.github.developergr3y.shaftutils.fossil.FossilHighlight
 import io.github.developergr3y.shaftutils.hud.HudEditScreen
 import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.developergr3y.shaftutils.hud.RouteRender
@@ -76,6 +77,7 @@ object ShaftUtils : ClientModInitializer {
             RouteKeys.tick(client)
             ShaftProfit.tick(client)
             PerfectGems.tick(client)
+            FossilHighlight.tick(client)
             EntryTitle.tick()
         }
 
@@ -84,6 +86,7 @@ object ShaftUtils : ClientModInitializer {
             if (screen is MoulConfigScreenComponent) ScreenEvents.remove(screen).register { saveConfig() }
         }
 
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("fossils"), FossilHighlight::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("route"), RouteRender::render)
         HudElementRegistry.addLast(id("shaft_title_border"), EntryTitle::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("waypoints"), Waypoints::render)
