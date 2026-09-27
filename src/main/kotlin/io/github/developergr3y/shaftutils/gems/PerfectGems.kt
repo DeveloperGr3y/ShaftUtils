@@ -85,6 +85,11 @@ object PerfectGems {
     private val setAside = mutableMapOf<String, Pair<Long, Long>>()
     /** Supercrafted gems: they still change your totals when they reach your sacks, but aren't newly mined. */
     private val crafted = mutableMapOf<String, Pair<Long, Long>>()
+    /**
+     * Fine gems a Flawless craft used up, already taken off: the Flawless lands in your inventory at once, but the
+     * sack message removing the Fine can come up to 30s later (or never, if you change server).
+     */
+    private val usedUp = mutableMapOf<String, Pair<Long, Long>>()
     /** A gain of some gem, in rough equivalents. */
     private class Gain(val at: Long, val gem: Gem, val rough: Long)
     private val gains = ArrayDeque<Gain>()
@@ -103,6 +108,7 @@ object PerfectGems {
     fun tick(client: Minecraft) {
         if (!config.enabled) return
         val player = client.player ?: return
+        restoreUnused(System.currentTimeMillis())
         val counts = mutableMapOf<String, Long>()
         val inv = player.inventory
         for (i in 0 until Inventory.INVENTORY_SIZE) { // hotbar and main inventory, not armour
@@ -189,6 +195,7 @@ object PerfectGems {
                     val name = ShaftProfit.cleanName(m.groupValues[2])
                     if (!gemItem.matches(name)) continue
                     var amount = m.groupValues[1].replace(",", "").replace("+", "").toLong()
+                    if (amount < 0) amount = -use(usedUp, name, -amount, now)
                     if (amount > 0) amount = use(setAside, name, amount, now)
                     if (amount > 0) {
                         val mined = use(crafted, name, amount, now)
@@ -205,6 +212,12 @@ object PerfectGems {
             if (!gemItem.matches(name)) return
             val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
             crafted[name] = ((crafted[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
+            if (name.startsWith("Flawless ")) {
+                val fine = name.replaceFirst("Flawless ", "Fine ")
+                val used = amount * 80
+                change(fine, -used, now, gained = false)
+                usedUp[fine] = ((usedUp[fine]?.first ?: 0) + used) to now + SET_ASIDE_MS
+            }
             return
         }
         pristine.find(text)?.let {
@@ -213,6 +226,18 @@ object PerfectGems {
             val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
             change(name, amount, now)
             setAside[name] = ((setAside[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
+        }
+    }
+
+    /**
+     * Fine gems taken off for a Flawless craft whose sack removal never came: they must have come from your inventory
+     * (already counted there) or the message was lost, so put them back.
+     */
+    private fun restoreUnused(now: Long) {
+        val expired = usedUp.filterValues { (_, until) -> now > until }
+        for ((name, pair) in expired) {
+            usedUp.remove(name)
+            change(name, pair.first, now, gained = false)
         }
     }
 
