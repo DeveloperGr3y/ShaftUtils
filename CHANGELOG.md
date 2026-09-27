@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/DeveloperGr3y/ShaftUtils/compare/v0.2.0...v0.3.0) (2026-09-27)
+
+
+### Features
+
+* add 12 more corpse spawn spots ([#18](https://github.com/DeveloperGr3y/ShaftUtils/issues/18)) ([2f3082a](https://github.com/DeveloperGr3y/ShaftUtils/commit/2f3082abc5f3232bc8672b3279b592a5da86001b))
+* group settings into Helpers and Trackers ([#14](https://github.com/DeveloperGr3y/ShaftUtils/issues/14)) ([96c7c22](https://github.com/DeveloperGr3y/ShaftUtils/commit/96c7c224404013e6214ec49b3bb0bf3b51f7d0ba))
+* highlight fossils (quartz blocks) in shafts ([#12](https://github.com/DeveloperGr3y/ShaftUtils/issues/12)) ([557633d](https://github.com/DeveloperGr3y/ShaftUtils/commit/557633d789c1a0029a35fababa78919a155bb7e2))
+* Perfect Gem Tracker panel ([#13](https://github.com/DeveloperGr3y/ShaftUtils/issues/13)) ([45077b9](https://github.com/DeveloperGr3y/ShaftUtils/commit/45077b9eb9d36a8819d0bd3cbe844e6650ca8c04))
+
+
+### Bug Fixes
+
+* don't count supercrafted items as shaft profit ([#16](https://github.com/DeveloperGr3y/ShaftUtils/issues/16)) ([857fe17](https://github.com/DeveloperGr3y/ShaftUtils/commit/857fe17d4763afd2ef20aff40220bc67fd4f4d8d))
+* only show panel buttons with your inventory open ([#15](https://github.com/DeveloperGr3y/ShaftUtils/issues/15)) ([b8bc30a](https://github.com/DeveloperGr3y/ShaftUtils/commit/b8bc30a00ecab4bb295a2585121f25123367def2))
+
 ## [0.2.0](https://github.com/DeveloperGr3y/ShaftUtils/compare/v0.1.0...v0.2.0) (2026-09-27)
 
 
