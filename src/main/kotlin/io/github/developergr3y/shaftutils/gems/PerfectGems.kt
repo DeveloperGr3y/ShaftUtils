@@ -70,6 +70,7 @@ object PerfectGems {
     private val sacksHeader = Regex("^\\[Sacks] ")
     private val sackLine = Regex("^\\s*([+-][\\d,]+) (.+?) \\((.+)\\)\\s*$")
     private val pristine = Regex("^PRISTINE! You found (.+?)(?: x([\\d,]+))?!")
+    private val supercraft = Regex("^You Supercrafted (.+?)(?: x([\\d,]+))?!$")
     /** Lore of a gem in the Gemstones Sack, e.g. " Rough: 18,432 (...)"; single-item sacks say "Stored: 18,432/...". */
     private val tierLore = Regex("^\\s*(Rough|Flawed|Fine|Flawless): ([\\d,]+)")
     private val storedLore = Regex("^\\s*Stored: ([\\d,]+)")
@@ -81,6 +82,8 @@ object PerfectGems {
     /** Gem item name -> how many are in your inventory right now. */
     private var inventory: Map<String, Long> = emptyMap()
     private val setAside = mutableMapOf<String, Pair<Long, Long>>()
+    /** Supercrafted gems: they still change your totals when they reach your sacks, but aren't newly mined. */
+    private val crafted = mutableMapOf<String, Pair<Long, Long>>()
     /** A gain of some gem, in rough equivalents. */
     private class Gain(val at: Long, val gem: Gem, val rough: Long)
     private val gains = ArrayDeque<Gain>()
@@ -185,10 +188,22 @@ object PerfectGems {
                     val name = ShaftProfit.cleanName(m.groupValues[2])
                     if (!gemItem.matches(name)) continue
                     var amount = m.groupValues[1].replace(",", "").replace("+", "").toLong()
-                    if (amount > 0) amount = useSetAside(name, amount, now)
+                    if (amount > 0) amount = use(setAside, name, amount, now)
+                    if (amount > 0) {
+                        val mined = use(crafted, name, amount, now)
+                        if (mined < amount) change(name, amount - mined, now, gained = false)
+                        amount = mined
+                    }
                     if (amount != 0L) change(name, amount, now)
                 }
             }
+            return
+        }
+        supercraft.find(text)?.let {
+            val name = ShaftProfit.cleanName(it.groupValues[1])
+            if (!gemItem.matches(name)) return
+            val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
+            crafted[name] = ((crafted[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
             return
         }
         pristine.find(text)?.let {
@@ -200,23 +215,25 @@ object PerfectGems {
         }
     }
 
-    private fun useSetAside(name: String, amount: Long, now: Long): Long {
-        val (held, until) = setAside[name] ?: return amount
+    /** Take up to [amount] of [name] from a ledger of expected arrivals; returns what's left over. */
+    private fun use(ledger: MutableMap<String, Pair<Long, Long>>, name: String, amount: Long, now: Long): Long {
+        val (held, until) = ledger[name] ?: return amount
         if (now > until) {
-            setAside.remove(name)
+            ledger.remove(name)
             return amount
         }
         val used = minOf(held, amount)
-        if (held - used > 0) setAside[name] = (held - used) to until else setAside.remove(name)
+        if (held - used > 0) ledger[name] = (held - used) to until else ledger.remove(name)
         return amount - used
     }
 
-    private fun change(name: String, amount: Long, now: Long) {
+    /** Apply a sack change; [gained] = false for gems that came from crafting rather than mining. */
+    private fun change(name: String, amount: Long, now: Long, gained: Boolean = true) {
         config.sacks[name] = ((config.sacks[name] ?: 0) + amount).coerceAtLeast(0)
         if (dirtySince == 0L) dirtySince = now
         val m = gemItem.matchEntire(name) ?: return
         val gem = Gem.from(m.groupValues[2]) ?: return
-        if (amount > 0) {
+        if (amount > 0 && gained) {
             val rough = amount * weight(m.groupValues[1])
             sessionGained.merge(gem, rough, Long::plus)
             gains.addLast(Gain(now, gem, rough))
