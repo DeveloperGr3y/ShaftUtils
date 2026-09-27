@@ -375,13 +375,13 @@ class ProfitConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, shafts...), only in shafts, or anywhere in SkyBlock.")
+    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, Gold Mine, Deep Caverns, shafts), those plus the Crimson Isle, only in shafts, or anywhere in SkyBlock.")
     @ConfigEditorDropdown
     var where = ShowWhere.MINING_ISLANDS
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Show When", desc = "Only while mining (or holding a pickaxe/drill), or always. Shows with your inventory open.")
+    @ConfigOption(name = "Show When", desc = "While mining or holding a pickaxe/drill/gauntlet, only while holding one, or always. Shows with your inventory open.")
     @ConfigEditorDropdown
     var showWhen = ShowWhen.ALWAYS
 
@@ -435,13 +435,13 @@ class PerfectConfig {
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, shafts...), only in shafts, or anywhere in SkyBlock.")
+    @ConfigOption(name = "Where", desc = "Mining islands (Dwarven Mines, Crystal Hollows, Gold Mine, Deep Caverns, shafts), those plus the Crimson Isle, only in shafts, or anywhere in SkyBlock.")
     @ConfigEditorDropdown
     var where = ShowWhere.MINING_ISLANDS
 
     @Expose
     @JvmField
-    @ConfigOption(name = "Show When", desc = "Only while mining (or holding a pickaxe/drill), or always. Shows with your inventory open.")
+    @ConfigOption(name = "Show When", desc = "While mining or holding a pickaxe/drill/gauntlet, only while holding one, or always. Shows with your inventory open.")
     @ConfigEditorDropdown
     var showWhen = ShowWhen.MINING
 
