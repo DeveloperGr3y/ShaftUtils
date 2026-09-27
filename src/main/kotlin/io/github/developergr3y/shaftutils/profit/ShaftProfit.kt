@@ -26,7 +26,9 @@ import kotlin.math.abs
  *  - Your inventory: anything new that didn't go to your sacks.
  *  - The corpse loot summary in chat, counted as corpse loot. Those items also turn up in your sacks/inventory later,
  *    so they're set aside and not counted a second time as mining.
- * Moving items out of your sacks ("Moved 64 X from your Sacks to your inventory.") isn't a gain.
+ * Moving items out of your sacks ("Moved 64 X from your Sacks to your inventory.") isn't a gain, and neither is
+ * crafting: "You Supercrafted Flawed Jade Gemstone x4,490!" sets those aside, since the gems they're made from were
+ * already counted when you mined them.
  */
 object ShaftProfit {
     class Session(val code: String, val startedAt: Long) {
@@ -47,6 +49,7 @@ object ShaftProfit {
     private val moved = Regex("^Moved ([\\d,]+) (.+?) from your Sacks to your inventory\\.?$")
     /** "PRISTINE! You found ❁ Flawed Jasper Gemstone x4!" */
     private val pristine = Regex("^PRISTINE! You found (.+?)(?: x([\\d,]+))?!$")
+    private val supercraft = Regex("^You Supercrafted (.+?)(?: x([\\d,]+))?!$")
     private val lootLine = Regex("^\\s+(.+?)(?: x([\\d,]+))?\\s*$")
 
     var session: Session? = null
@@ -123,6 +126,12 @@ object ShaftProfit {
             val name = cleanName(it.groupValues[1])
             val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
             s.mining.merge(name, amount, Long::plus)
+            setAside[name] = ((setAside[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
+            return
+        }
+        supercraft.find(text)?.let {
+            val name = cleanName(it.groupValues[1])
+            val amount = it.groupValues[2].replace(",", "").toLongOrNull() ?: 1
             setAside[name] = ((setAside[name]?.first ?: 0) + amount) to now + SET_ASIDE_MS
             return
         }
