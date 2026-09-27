@@ -8,7 +8,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 /**
  * Progress towards the Perfect gemstone you've picked:
  *
- *   Perfect Gem Tracker [Auto] [◂] [▸]
+ *   [Auto] [◂] [▸]              (inventory open only)
+ *   Perfect Gem Tracker
  *   ❁ Perfect Jasper ×0.9              92.2%
  *   [█████][█████][█████][█████][███  ]
  *   Progress                4.61 / 5 flawless
@@ -50,17 +51,16 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
         val changeTip = listOf(
             "§eClick §7[◂] [▸] or the gem's name to pick a gem",
             "§a[Auto]§7: follow the gem you're mining",
-            "§7(with your inventory open)",
             "§7Or: §e/shaftutils perfect <gem|auto>",
         )
         val auto = Cell(if (config.auto) "§a[Auto]" else "§8[Auto]") {
             config.auto = !config.auto
             ShaftUtils.saveConfig()
         }
-        lines += PanelLine(
-            listOf(Cell("§6§lPerfect Gem Tracker"), auto, Cell("§e[◂]") { change(Gem::previous) }, Cell("§e[▸]") { change(Gem::next) }),
-            tooltip = changeTip,
-        )
+        if (inInventory) {
+            lines += PanelLine(listOf(auto, Cell("§e[◂]") { change(Gem::previous) }, Cell("§e[▸]") { change(Gem::next) }), tooltip = changeTip)
+        }
+        lines += PanelLine("§6§lPerfect Gem Tracker")
         val count = "${if (ready > 0) "§a" else "§7"}×${trim(perfects)}"
         lines += PanelLine(
             listOf(
@@ -68,7 +68,7 @@ object PerfectPanel : Panel("Perfect Gem Tracker") {
                 Cell(if (ready > 0) "" else "§f${"%.1f".format(perfects * 100)}%"),
             ),
             columns = true,
-            tooltip = changeTip,
+            tooltip = if (inInventory) changeTip else null,
         )
         if (ready > 0) lines += PanelLine("§a✔ Can craft $ready×")
         lines += PanelLine.painted { g, x, y, width -> bar(g, x, y, width, flawless, ready > 0, gem.rgb) }
