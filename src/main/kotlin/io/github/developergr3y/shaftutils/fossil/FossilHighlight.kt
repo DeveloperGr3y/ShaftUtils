@@ -1,44 +1,41 @@
 package io.github.developergr3y.shaftutils.fossil
 
+import com.mojang.blaze3d.vertex.PoseStack
 import io.github.developergr3y.shaftutils.ShaftUtils
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
-import io.github.developergr3y.shaftutils.util.Projection
-import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.renderer.SubmitNodeCollector
+import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.world.entity.Entity
-import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.AABB
-import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import kotlin.math.ceil
-import kotlin.math.floor
 
 /**
- * Fossils in a shaft are built from quartz (blocks, pillars, stairs, slabs...). This tints the faces of those blocks
- * purple, drawn on the HUD like the other waypoints:
+ * Fossils in a shaft are built from quartz (blocks, pillars, stairs, slabs...). This tints the outward faces of those
+ * blocks purple, drawn in the world so the game's depth test hides anything behind walls:
  *  1. Every couple of seconds, the loaded chunks around you are scanned for quartz. Chunk sections whose palette has
  *     no quartz at all are skipped, so this is cheap.
- *  2. A few times a second, each quartz block's outward faces (not ones pressed against another solid block) are
- *     checked for line of sight from your eyes. Nothing is shown through walls.
- *  3. Every frame, the visible faces that point towards you are projected to the screen and filled.
+ *  2. Twice a second, the faces to tint are worked out: each quartz block's faces that aren't pressed against another
+ *     solid block, within range. Mined blocks drop out here.
+ *  3. Every frame, those faces are sent to the game as one batch of translucent quads.
  */
 object FossilHighlight {
     private const val SCAN_TICKS = 40
-    private const val SIGHT_TICKS = 4
+    private const val FACE_TICKS = 10
     private const val SCAN_HEIGHT = 48
     private const val PURPLE = 0xB040FF
-
-    private class Face(val direction: Direction, val corners: List<Vec3>, val centre: Vec3)
+    /** Lifts the tint just off the block, so it doesn't flicker against the block's own surface. */
+    private const val LIFT = 0.003
 
     private var blocks: Set<BlockPos> = emptySet()
-    private var visible: List<Face> = emptyList()
+    /** Four corners per face, already lifted off the block. */
+    private var faces: List<Array<Vec3>> = emptyList()
     private var ticks = 0
     private var lastLevel: Level? = null
     private val isQuartz = mutableMapOf<Block, Boolean>()
@@ -53,7 +50,7 @@ object FossilHighlight {
         val player = client.player
         if (!ShaftUtils.config.fossils.enabled || !Mineshaft.inShaft || level == null || player == null) {
             blocks = emptySet()
-            visible = emptyList()
+            faces = emptyList()
             return
         }
         if (level !== lastLevel) {
@@ -62,7 +59,7 @@ object FossilHighlight {
             ticks = 0
         }
         if (ticks % SCAN_TICKS == 0) blocks = scan(level, player.blockPosition())
-        if (ticks % SIGHT_TICKS == 0) visible = visibleFaces(level, player.getEyePosition(1f))
+        if (ticks % FACE_TICKS == 0) faces = faces(level, player.position())
         ticks++
     }
 
@@ -90,12 +87,11 @@ object FossilHighlight {
         return found
     }
 
-    private fun visibleFaces(level: Level, eye: Vec3): List<Face> {
+    private fun faces(level: Level, player: Vec3): List<Array<Vec3>> {
         val range = ShaftUtils.config.fossils.range.toDouble()
-        val out = mutableListOf<Face>()
-        val player = Minecraft.getInstance().player ?: return out
+        val out = mutableListOf<Array<Vec3>>()
         for (pos in blocks) {
-            if (Vec3.atCenterOf(pos).distanceTo(eye) > range) continue
+            if (Vec3.atCenterOf(pos).distanceTo(player) > range) continue
             val state = level.getBlockState(pos)
             if (!quartz(state.block)) continue // mined since the last scan
             for (box in state.getShape(level, pos).toAabbs()) {
@@ -106,9 +102,7 @@ object FossilHighlight {
                         val n = level.getBlockState(neighbour)
                         if (n.canOcclude() && n.isCollisionShapeFullBlock(level, neighbour)) continue
                     }
-                    val face = face(b, direction)
-                    if (!facing(face, eye)) continue
-                    if (samples(face).any { canSee(level, eye, it, player) }) out += face
+                    out += corners(b, direction)
                 }
             }
         }
@@ -125,95 +119,31 @@ object FossilHighlight {
         Direction.EAST -> b.maxX == pos.x + 1.0
     }
 
-    private fun face(b: AABB, d: Direction): Face {
+    private fun corners(b: AABB, d: Direction): Array<Vec3> {
         val corners = when (d) {
-            Direction.DOWN -> listOf(Vec3(b.minX, b.minY, b.minZ), Vec3(b.maxX, b.minY, b.minZ), Vec3(b.maxX, b.minY, b.maxZ), Vec3(b.minX, b.minY, b.maxZ))
-            Direction.UP -> listOf(Vec3(b.minX, b.maxY, b.minZ), Vec3(b.maxX, b.maxY, b.minZ), Vec3(b.maxX, b.maxY, b.maxZ), Vec3(b.minX, b.maxY, b.maxZ))
-            Direction.NORTH -> listOf(Vec3(b.minX, b.minY, b.minZ), Vec3(b.maxX, b.minY, b.minZ), Vec3(b.maxX, b.maxY, b.minZ), Vec3(b.minX, b.maxY, b.minZ))
-            Direction.SOUTH -> listOf(Vec3(b.minX, b.minY, b.maxZ), Vec3(b.maxX, b.minY, b.maxZ), Vec3(b.maxX, b.maxY, b.maxZ), Vec3(b.minX, b.maxY, b.maxZ))
-            Direction.WEST -> listOf(Vec3(b.minX, b.minY, b.minZ), Vec3(b.minX, b.minY, b.maxZ), Vec3(b.minX, b.maxY, b.maxZ), Vec3(b.minX, b.maxY, b.minZ))
-            Direction.EAST -> listOf(Vec3(b.maxX, b.minY, b.minZ), Vec3(b.maxX, b.minY, b.maxZ), Vec3(b.maxX, b.maxY, b.maxZ), Vec3(b.maxX, b.maxY, b.minZ))
+            Direction.DOWN -> arrayOf(Vec3(b.minX, b.minY, b.minZ), Vec3(b.maxX, b.minY, b.minZ), Vec3(b.maxX, b.minY, b.maxZ), Vec3(b.minX, b.minY, b.maxZ))
+            Direction.UP -> arrayOf(Vec3(b.minX, b.maxY, b.minZ), Vec3(b.minX, b.maxY, b.maxZ), Vec3(b.maxX, b.maxY, b.maxZ), Vec3(b.maxX, b.maxY, b.minZ))
+            Direction.NORTH -> arrayOf(Vec3(b.minX, b.minY, b.minZ), Vec3(b.minX, b.maxY, b.minZ), Vec3(b.maxX, b.maxY, b.minZ), Vec3(b.maxX, b.minY, b.minZ))
+            Direction.SOUTH -> arrayOf(Vec3(b.minX, b.minY, b.maxZ), Vec3(b.maxX, b.minY, b.maxZ), Vec3(b.maxX, b.maxY, b.maxZ), Vec3(b.minX, b.maxY, b.maxZ))
+            Direction.WEST -> arrayOf(Vec3(b.minX, b.minY, b.minZ), Vec3(b.minX, b.minY, b.maxZ), Vec3(b.minX, b.maxY, b.maxZ), Vec3(b.minX, b.maxY, b.minZ))
+            Direction.EAST -> arrayOf(Vec3(b.maxX, b.minY, b.minZ), Vec3(b.maxX, b.maxY, b.minZ), Vec3(b.maxX, b.maxY, b.maxZ), Vec3(b.maxX, b.minY, b.maxZ))
         }
-        val centre = corners.reduce(Vec3::add).scale(0.25)
-        return Face(d, corners, centre)
+        val lift = d.unitVec3.scale(LIFT)
+        return Array(4) { corners[it].add(lift) }
     }
 
-    /** The face points towards [eye] (you're on its outer side). */
-    private fun facing(face: Face, eye: Vec3): Boolean {
-        val n = face.direction.unitVec3
-        return eye.subtract(face.centre).dot(n) > 0
-    }
-
-    /** The face's centre and points near its corners, nudged just off the surface. */
-    private fun samples(face: Face): List<Vec3> {
-        val out = face.direction.unitVec3.scale(0.02)
-        return (listOf(face.centre) + face.corners.map { it.add(face.centre.subtract(it).scale(0.2)) }).map { it.add(out) }
-    }
-
-    private fun canSee(level: Level, eye: Vec3, target: Vec3, player: Entity): Boolean {
-        val hit = level.clip(ClipContext(eye, target, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, player))
-        return hit.type == HitResult.Type.MISS || hit.location.distanceToSqr(target) < 0.01
-    }
-
-    fun render(graphics: GuiGraphicsExtractor, @Suppress("UNUSED_PARAMETER") deltaTracker: DeltaTracker) {
-        if (visible.isEmpty() || Compat.screen != null) return
-        val eye = Compat.camera.position()
+    /** Called while the world is drawn: every face as one batch of translucent, depth-tested quads. */
+    fun renderWorld(poseStack: PoseStack, collector: SubmitNodeCollector) {
+        val list = faces
+        if (list.isEmpty()) return
+        val camera = Compat.camera.position()
         val alpha = (ShaftUtils.config.fossils.opacity / 100f * 255).toInt().coerceIn(0, 255)
         val colour = (alpha shl 24) or PURPLE
-        for (face in visible) {
-            if (!facing(face, eye)) continue
-            fill(graphics, face.corners, colour)
-        }
-    }
-
-    /** Fill a flat quad in the world: cut it at the camera, project it, then fill it row by row. */
-    private fun fill(graphics: GuiGraphicsExtractor, corners: List<Vec3>, colour: Int) {
-        var points = corners.map { Projection.toCamera(it) }
-        points = clipNear(points)
-        if (points.size < 3) return
-        val screen = points.mapNotNull { Projection.toScreen(it) }
-        if (screen.size < 3) return
-        val window = Minecraft.getInstance().window
-        val w = window.guiScaledWidth
-        val h = window.guiScaledHeight
-        val top = floor(screen.minOf { it.second }).toInt().coerceAtLeast(0)
-        val bottom = ceil(screen.maxOf { it.second }).toInt().coerceAtMost(h)
-        if (top >= bottom) return
-        if (screen.maxOf { it.first } < 0 || screen.minOf { it.first } > w) return
-        for (y in top until bottom) {
-            val sy = y + 0.5
-            var left = Double.MAX_VALUE
-            var right = -Double.MAX_VALUE
-            for (i in screen.indices) {
-                val (x0, y0) = screen[i]
-                val (x1, y1) = screen[(i + 1) % screen.size]
-                if ((sy < y0) == (sy < y1)) continue
-                val x = x0 + (sy - y0) / (y1 - y0) * (x1 - x0)
-                if (x < left) left = x
-                if (x > right) right = x
-            }
-            if (left > right) continue
-            val l = Math.round(left).toInt().coerceAtLeast(0)
-            val r = Math.round(right).toInt().coerceAtMost(w)
-            if (r > l) graphics.fill(l, y, r, y + 1, colour)
-        }
-    }
-
-    /** Sutherland-Hodgman against the plane just in front of the camera. */
-    private fun clipNear(points: List<Projection.CameraPoint>): List<Projection.CameraPoint> {
-        val near = 0.1
-        val out = mutableListOf<Projection.CameraPoint>()
-        for (i in points.indices) {
-            val a = points[i]
-            val b = points[(i + 1) % points.size]
-            val aIn = a.depth >= near
-            val bIn = b.depth >= near
-            if (aIn) out += a
-            if (aIn != bIn) {
-                val t = (a.depth - near) / (a.depth - b.depth)
-                out += Projection.CameraPoint(a.right + (b.right - a.right) * t, a.up + (b.up - a.up) * t, near)
+        collector.submitCustomGeometry(poseStack, RenderTypes.debugQuads()) { pose, buffer ->
+            for (face in list) for (corner in face) {
+                buffer.addVertex(pose, (corner.x - camera.x).toFloat(), (corner.y - camera.y).toFloat(), (corner.z - camera.z).toFloat())
+                    .setColor(colour)
             }
         }
-        return out
     }
 }

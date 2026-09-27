@@ -34,6 +34,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.core.BlockPos
@@ -90,7 +91,7 @@ object ShaftUtils : ClientModInitializer {
             if (screen is MoulConfigScreenComponent) ScreenEvents.remove(screen).register { saveConfig() }
         }
 
-        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("fossils"), FossilHighlight::render)
+        LevelRenderEvents.COLLECT_SUBMITS.register { ctx -> FossilHighlight.renderWorld(ctx.poseStack(), ctx.submitNodeCollector()) }
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("route"), RouteRender::render)
         HudElementRegistry.addLast(id("shaft_title_border"), EntryTitle::render)
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id("waypoints"), Waypoints::render)
