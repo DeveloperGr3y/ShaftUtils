@@ -10,6 +10,7 @@ import net.minecraft.core.component.DataComponents
 
 enum class ShowWhere(private val label: String) {
     MINING_ISLANDS("Mining islands"),
+    MINING_AND_CRIMSON("Mining islands + Crimson Isle"),
     SHAFTS("Glacite Mineshafts only"),
     ANYWHERE("Anywhere in SkyBlock"),
     ;
@@ -19,6 +20,7 @@ enum class ShowWhere(private val label: String) {
 
 enum class ShowWhen(private val label: String) {
     MINING("Mining or tool in hand"),
+    TOOL("Tool in hand only"),
     ALWAYS("Always"),
     ;
 
@@ -36,12 +38,17 @@ object Visibility {
         if (!Location.onSkyBlock && !Mineshaft.inShaft) return false
         when (where) {
             ShowWhere.MINING_ISLANDS -> if (!Location.onMiningIsland) return false
+            ShowWhere.MINING_AND_CRIMSON -> if (!Location.onMiningIsland && Location.area != "Crimson Isle") return false
             ShowWhere.SHAFTS -> if (!Mineshaft.inShaft) return false
             ShowWhere.ANYWHERE -> {}
         }
         // With your inventory open it always shows, so the tracker's buttons can be reached.
-        if (Compat.screen is AbstractContainerScreen<*> || showWhen == ShowWhen.ALWAYS) return true
-        return Mineshaft.inShaft || System.currentTimeMillis() - PerfectGems.lastGain < MINING_MS || holdingTool()
+        if (Compat.screen is AbstractContainerScreen<*>) return true
+        return when (showWhen) {
+            ShowWhen.ALWAYS -> true
+            ShowWhen.TOOL -> holdingTool()
+            ShowWhen.MINING -> Mineshaft.inShaft || System.currentTimeMillis() - PerfectGems.lastGain < MINING_MS || holdingTool()
+        }
     }
 
     /** A pickaxe, drill or gauntlet, by its SkyBlock item id. */
