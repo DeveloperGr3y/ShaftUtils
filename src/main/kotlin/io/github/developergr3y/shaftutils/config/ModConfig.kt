@@ -2,6 +2,7 @@ package io.github.developergr3y.shaftutils.config
 
 import com.google.gson.annotations.Expose
 import io.github.developergr3y.shaftutils.ShaftUtils
+import io.github.developergr3y.shaftutils.gems.Gem
 import io.github.developergr3y.shaftutils.hud.HudPosition
 import io.github.developergr3y.shaftutils.profit.KeyPriceType
 import io.github.developergr3y.shaftutils.profit.PriceType
@@ -50,6 +51,11 @@ class ModConfig : Config() {
     @JvmField
     @Category(name = "Profit", desc = "What each shaft made: mining, corpse loot, minus the keys you used.")
     var profit = ProfitConfig()
+
+    @Expose
+    @JvmField
+    @Category(name = "Perfect Gems", desc = "Progress towards a Perfect gemstone, from your sacks and inventory.")
+    var perfect = PerfectConfig()
 
     @Expose
     @JvmField
@@ -361,6 +367,37 @@ class ProfitConfig {
     // Not shown as options: the panel's Shaft / Session switch, and its position (GUI > Edit GUI Locations).
     @Expose @JvmField var sessionView = false
     @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 150)
+}
+
+class PerfectConfig {
+    @Transient
+    @JvmField
+    @ConfigOption(name = "Getting started", desc = "Open your §eGemstones Sack§7 once so the tracker knows what's in it. After that it follows your sack messages; opening the sack again corrects it.")
+    @ConfigEditorInfoText(infoTitle = "Info")
+    var info = false
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Enabled", desc = "Show the Perfect Gem Tracker panel.")
+    @ConfigEditorBoolean
+    var enabled = true
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Target", desc = "The Perfect gemstone you're working towards. Also: click its name on the panel.")
+    @ConfigEditorDropdown
+    var target = Gem.JASPER
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Always Show", desc = "Show the panel everywhere, not just in shafts and while you're mining gems.")
+    @ConfigEditorBoolean
+    var alwaysShow = false
+
+    // Not shown as options: what your sacks hold (kept between games), and the panel's position.
+    @Expose @JvmField var sacks = mutableMapOf<String, Long>()
+    @Expose @JvmField var synced = mutableSetOf<String>()
+    @Expose @JvmField var panelPosition = HudPosition(x = 5, y = 250)
 }
 
 class DebugConfig {

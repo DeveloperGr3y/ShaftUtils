@@ -17,6 +17,8 @@ import io.github.developergr3y.shaftutils.routes.RouteFollower
 import io.github.developergr3y.shaftutils.routes.Routes
 import com.mojang.brigadier.arguments.StringArgumentType
 import io.github.developergr3y.shaftutils.hud.Waypoints
+import io.github.developergr3y.shaftutils.gems.Gem
+import io.github.developergr3y.shaftutils.gems.PerfectGems
 import io.github.developergr3y.shaftutils.shaft.EntryTitle
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
@@ -61,6 +63,7 @@ object ShaftUtils : ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register { OrganDonor.register() }
         CorpseFinder.register()
         ShaftProfit.register()
+        PerfectGems.register()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             nextTick?.let {
@@ -72,6 +75,7 @@ object ShaftUtils : ClientModInitializer {
             RouteFollower.tick(client)
             RouteKeys.tick(client)
             ShaftProfit.tick(client)
+            PerfectGems.tick(client)
             EntryTitle.tick()
         }
 
@@ -121,11 +125,32 @@ object ShaftUtils : ClientModInitializer {
                         addSpotHere()
                         1
                     })
+                    .then(perfectCommand())
                     .then(routeCommand())
 ,
             )
         }
     }
+
+    /** /shaftutils perfect <gem>: pick the Perfect gemstone the tracker counts towards. */
+    private fun perfectCommand() = ClientCommands.literal("perfect").then(
+        ClientCommands.argument("gem", StringArgumentType.word())
+            .suggests { _, builder ->
+                Gem.entries.forEach { builder.suggest(it.label.lowercase()) }
+                builder.buildFuture()
+            }
+            .executes { ctx ->
+                val gem = Gem.from(StringArgumentType.getString(ctx, "gem"))
+                if (gem == null) {
+                    chat("§cUnknown gem. Try: ${Gem.entries.joinToString { it.label.lowercase() }}")
+                } else {
+                    config.perfect.target = gem
+                    saveConfig()
+                    chat("Tracking ${gem.colour}Perfect ${gem.label}§r.")
+                }
+                1
+            },
+    )
 
     /**
      * /shaftutils route: import (from clipboard), next, back, restart, reload, list, delete, folder.
