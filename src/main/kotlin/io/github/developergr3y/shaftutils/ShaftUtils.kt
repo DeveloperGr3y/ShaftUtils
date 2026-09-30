@@ -24,6 +24,7 @@ import io.github.developergr3y.shaftutils.gems.PerfectGems
 import io.github.developergr3y.shaftutils.shaft.EntryTitle
 import io.github.developergr3y.shaftutils.shaft.Mineshaft
 import io.github.developergr3y.shaftutils.util.Compat
+import io.github.developergr3y.shaftutils.util.HypixelLocation
 import io.github.developergr3y.shaftutils.util.Location
 import io.github.notenoughupdates.moulconfig.managed.ManagedConfig
 import io.github.notenoughupdates.moulconfig.platform.MoulConfigScreenComponent
@@ -68,6 +69,7 @@ object ShaftUtils : ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register { OrganDonor.register() }
         CorpseFinder.register()
         ShaftProfit.register()
+        HypixelLocation.register()
         PerfectGems.register()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
