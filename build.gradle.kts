@@ -21,6 +21,9 @@ repositories {
     maven("https://maven.notenoughupdates.org/releases") {
         content { includeGroupAndSubgroups("org.notenoughupdates") }
     }
+    maven("https://repo.hypixel.net/repository/Hypixel") {
+        content { includeGroup("net.hypixel") }
+    }
 }
 
 // Libraries bundled (and renamed) inside our jar so they can't clash with other mods' copies.
@@ -33,6 +36,9 @@ dependencies {
     implementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
 
     // Kotlin runtime, nested in our jar so players don't need to install it separately.
+    // Hypixel Mod API: only its API, for Hypixel's location packet. Not bundled; used only if its mod is installed.
+    compileOnly("net.hypixel:mod-api:1.0.2")
+
     val kotlinRuntime = "net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}"
     implementation(kotlinRuntime)
     include(kotlinRuntime)
