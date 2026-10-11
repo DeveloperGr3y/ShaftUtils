@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.0](https://github.com/DeveloperGr3y/ShaftUtils/compare/v0.3.0...v0.4.0) (2026-10-11)
+
+
+### Features
+
+* add 12 corpse spawn spots (credit Michelzz) ([#30](https://github.com/DeveloperGr3y/ShaftUtils/issues/30)) ([36d5e92](https://github.com/DeveloperGr3y/ShaftUtils/commit/36d5e92ac4b2170501b44f095672b27936898c58))
+* add 12 corpse spawn spots from the fiesta ([#20](https://github.com/DeveloperGr3y/ShaftUtils/issues/20)) ([59db6f4](https://github.com/DeveloperGr3y/ShaftUtils/commit/59db6f410b13821339833dff31411c9f805279cd))
+* say in chat when a newer version is out ([#31](https://github.com/DeveloperGr3y/ShaftUtils/issues/31)) ([cb71033](https://github.com/DeveloperGr3y/ShaftUtils/commit/cb71033179f18363230c691f808ddef002a1d45b))
+
+
+### Bug Fixes
+
+* crafting Flawless gems no longer boosts the Perfect Gem Tracker ([#24](https://github.com/DeveloperGr3y/ShaftUtils/issues/24)) ([72e5d99](https://github.com/DeveloperGr3y/ShaftUtils/commit/72e5d99063f44c88e175ad9a6fde7900152f9043))
+* know the island from Hypixel's location packet ([#26](https://github.com/DeveloperGr3y/ShaftUtils/issues/26)) ([e2079a8](https://github.com/DeveloperGr3y/ShaftUtils/commit/e2079a8747afb4ad61f01cd86c1f42170439bcf3))
+* make the shaft profit tracker count only mining ([#21](https://github.com/DeveloperGr3y/ShaftUtils/issues/21)) ([b1a8697](https://github.com/DeveloperGr3y/ShaftUtils/commit/b1a86970c9d53ac3d23ecdfb407fa70fee43f42d))
+* rarity colours from Hypixel's item list ([#28](https://github.com/DeveloperGr3y/ShaftUtils/issues/28)) ([d145bb7](https://github.com/DeveloperGr3y/ShaftUtils/commit/d145bb793ab85f06f061e3d99dc236221a67e3c6))
+* show full item names in the profit panel ([#29](https://github.com/DeveloperGr3y/ShaftUtils/issues/29)) ([b895903](https://github.com/DeveloperGr3y/ShaftUtils/commit/b89590312ac37f1f4d8058c56f7340ddf9166d9c))
+* starting a Perfect in the Forge uses up its crystal on the tracker ([#25](https://github.com/DeveloperGr3y/ShaftUtils/issues/25)) ([168e8b1](https://github.com/DeveloperGr3y/ShaftUtils/commit/168e8b129044b16ca483ba2c75130c2930c5a143))
+
+
+### Performance
+
+* check for shafts only after changing world, clear mined fossils at once ([#22](https://github.com/DeveloperGr3y/ShaftUtils/issues/22)) ([9b086dc](https://github.com/DeveloperGr3y/ShaftUtils/commit/9b086dc5b681b6b7a6c21add2bba0038b9d525a8))
+
 ## [0.3.0](https://github.com/DeveloperGr3y/ShaftUtils/compare/v0.2.0...v0.3.0) (2026-09-27)
 
 
