@@ -13,10 +13,10 @@ import net.minecraft.client.Minecraft
  *
  *   [Insta-buy] [Shaft]
  *   Shaft Profit · Jasper
- *   Flawed Jasper        ×12,007      8.0m
- *   Rough Jasper         ×59,882      421k
- *   Ench Glacite             ×48      86k
- *   3 more…                           52k
+ *   Flawed Jasper Gemstone   ×12,007      8.0m
+ *   Rough Jasper Gemstone    ×59,882      421k
+ *   Enchanted Glacite            ×48      86k
+ *   3 more…                               52k
  *   Corpse loot (2)                   1.1m
  *   Keys                             -3.0m
  *   Profit                            6.7m
@@ -28,7 +28,8 @@ import net.minecraft.client.Minecraft
  */
 object ProfitPanel : Panel("Shaft Profit") {
     private val config get() = ShaftUtils.config.profit
-    private const val NAME_WIDTH = 110
+    /** Item names longer than this (in pixels) end in "…"; the full name is in the tooltip. */
+    private const val NAME_WIDTH = 140
 
     override var position: HudPosition
         get() = config.panelPosition
@@ -73,10 +74,12 @@ object ProfitPanel : Panel("Shaft Profit") {
             .map { (name, n) -> Triple(name, n, ShaftProfit.value(name, n)) }
             .sortedByDescending { it.third ?: 0.0 }
         items.take(config.itemsShown).forEach { (name, n, value) ->
+            val shown = fit(name)
             lines += PanelLine.row(
-                "  " + ItemIds.colourFor(name) + fit(ItemIds.shortName(name)),
+                "  " + ItemIds.colourFor(name) + shown,
                 "§7×" + "%,d".format(n),
                 value?.let { "§6" + ShaftProfit.coins(it) } ?: "§8?",
+                tooltip = if (shown != name) listOf(ItemIds.colourFor(name) + name) else null,
             )
         }
         val rest = items.drop(config.itemsShown)
