@@ -139,8 +139,6 @@ object ShaftProfit {
                     val m = sackLine.find(line) ?: continue
                     val amount = m.groupValues[1].replace(",", "").toLong()
                     val name = cleanName(m.groupValues[2])
-                    // The sack list colours each item by rarity (e.g. Glossy Gemstone).
-                    ItemIds.learnColour(name, colourBefore(legacyLine, name))
                     if (adding && amount > 0) addMining(s, name, amount, fromInventory = false)
                 }
             }

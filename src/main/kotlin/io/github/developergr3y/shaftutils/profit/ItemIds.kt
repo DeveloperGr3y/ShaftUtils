@@ -1,5 +1,7 @@
 package io.github.developergr3y.shaftutils.profit
 
+import com.google.gson.JsonParser
+
 /**
  * Item display name -> SkyBlock item id ("Rough Jade Gemstone" -> "ROUGH_JADE_GEM"), for looking up prices.
  * Sack and loot messages only give names. Ids seen on real items in your inventory win; otherwise the usual naming
@@ -15,17 +17,27 @@ object ItemIds {
         if (colour != null && colour != "§7" && colour != "§8") colours[name] = colour
     }
 
-    /** A few common mining items whose rarity we know, for when they haven't been seen as an item yet. */
-    private val knownColours = mapOf(
-        "Enchanted Glacite" to "§9", "Enchanted Hard Stone" to "§a", "Glacite" to "§f", "Hard Stone" to "§f",
+    /**
+     * Every item's rarity by id ("ENCHANTED_GLACITE" -> "RARE"), from Hypixel's public item list
+     * (api.hypixel.net/v2/resources/skyblock/items), bundled in the mod.
+     */
+    private val rarities: Map<String, String> by lazy {
+        val stream = ItemIds::class.java.getResourceAsStream("/assets/shaftutils/item_rarity.json") ?: return@lazy emptyMap()
+        stream.reader().use { reader ->
+            JsonParser.parseReader(reader).asJsonObject.entrySet().associate { (id, tier) -> id to tier.asString }
+        }
+    }
+    private val rarityColours = mapOf(
+        "COMMON" to "§f", "UNCOMMON" to "§a", "RARE" to "§9", "EPIC" to "§5", "LEGENDARY" to "§6", "MYTHIC" to "§d",
+        "SPECIAL" to "§c", "VERY_SPECIAL" to "§c", "SUPREME" to "§4", "UNOBTAINABLE" to "§4",
     )
 
-    /** The item's rarity colour: gemstones by tier, else as seen in game, else known, else white. */
+    /** The item's rarity colour: gemstones by tier, else Hypixel's item list, else as seen in game, else white. */
     fun colourFor(name: String): String =
-        gem.matchEntire(name)?.let { gemColours[it.groupValues[1]] } ?: colours[name] ?: knownColours[name] ?: "§f"
-
-    /** A shorter name for tight columns: "Enchanted Glacite" -> "Ench Glacite", "Flawed Jasper Gemstone" -> "Flawed Jasper". */
-    fun shortName(name: String) = name.replace("Enchanted ", "Ench ").removeSuffix(" Gemstone")
+        gem.matchEntire(name)?.let { gemColours[it.groupValues[1]] }
+            ?: rarities[idFor(name)]?.let { rarityColours[it] }
+            ?: colours[name]
+            ?: "§f"
 
     private val gem = Regex("^(Rough|Flawed|Fine|Flawless|Perfect) (\\w+) Gemstone$")
     private val book = Regex("^(?:Enchanted Book \\()?([A-Za-z' ]+?) ([IVX]+)\\)?$")
