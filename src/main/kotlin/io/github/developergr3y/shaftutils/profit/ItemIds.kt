@@ -24,9 +24,6 @@ object ItemIds {
     fun colourFor(name: String): String =
         gem.matchEntire(name)?.let { gemColours[it.groupValues[1]] } ?: colours[name] ?: knownColours[name] ?: "§f"
 
-    /** A shorter name for tight columns: "Enchanted Glacite" -> "Ench Glacite", "Flawed Jasper Gemstone" -> "Flawed Jasper". */
-    fun shortName(name: String) = name.replace("Enchanted ", "Ench ").removeSuffix(" Gemstone")
-
     private val gem = Regex("^(Rough|Flawed|Fine|Flawless|Perfect) (\\w+) Gemstone$")
     private val book = Regex("^(?:Enchanted Book \\()?([A-Za-z' ]+?) ([IVX]+)\\)?$")
     private val numerals = mapOf("I" to 1, "II" to 2, "III" to 3, "IV" to 4, "V" to 5, "VI" to 6, "VII" to 7, "VIII" to 8, "IX" to 9, "X" to 10)
