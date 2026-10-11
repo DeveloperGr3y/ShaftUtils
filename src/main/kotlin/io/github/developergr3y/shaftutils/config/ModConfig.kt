@@ -124,6 +124,12 @@ class GuiConfig {
     @ConfigOption(name = "Reset GUI Locations", desc = "Put the panels back to their default positions and sizes.")
     @ConfigEditorButton(buttonText = "Reset")
     val reset = Runnable { ShaftUtils.resetHud() }
+
+    @Expose
+    @JvmField
+    @ConfigOption(name = "Update Notice", desc = "Say in chat when a newer version is out on GitHub (checked once per game).")
+    @ConfigEditorBoolean
+    var updateNotice = true
 }
 
 class CorpseConfig {
